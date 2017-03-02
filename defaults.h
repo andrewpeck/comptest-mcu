@@ -6,8 +6,8 @@
 // static const auto PKMODE = Comparator::PKMODE0;
 // static const auto PKTIME = Comparator::PKTIME25;
 
-static const uint8_t BX_DELAY = 2;
-static const uint8_t PULSE_WIDTH = 1;
+static const uint8_t BX_DELAY = 6;
+static const uint8_t PULSE_WIDTH = 4;
 static const uint8_t PKMODE = 2;
 static const uint8_t PKTIME = 1;
 static const uint8_t TRIAD_PERSIST = 4;

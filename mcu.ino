@@ -10,6 +10,31 @@ void(* resetFunc) (void) = 0; //declare reset function @ address 0
 
 char rx_msg [120];
 uint16_t start = 0;
+
+
+void loopBackStressTest () {
+
+    SerialUSB.println("INFO::Starting Serial Loopback Test");
+    for (int data = 0; data<0xffff; data=data+8) {
+        fpga.writeAddress(0, uint16_t(data) );
+        uint16_t readback = fpga.readAddress(uint8_t(0));
+        if (readback!=data) {
+            SerialUSB.print("LOOPBACK ERROR: expect=");
+            SerialUSB.print(data);
+            SerialUSB.print("  read=");
+            SerialUSB.print(readback);
+            SerialUSB.print("\r\n");
+        }
+//         else
+//             SerialUSB.print("loopback ok:");
+//             SerialUSB.print(data);
+//             SerialUSB.print("\r\n");
+//     }
+    }
+    SerialUSB.println("INFO::Loopback Test Finished");
+}
+
+
 void setup () {
 
     //------------------------------------------------------------------------------------------------------------------
@@ -20,7 +45,7 @@ void setup () {
 
     setPinModes();
 
-// while(!SerialUSB);
+  //  while(!SerialUSB);
 
 
     //while (!SerialUSB.available()) {};
@@ -40,11 +65,12 @@ void setup () {
 
     SerialUSB.println("INFO::STARTUP SEQUENCE FINISHED");
 
-    // controller.initialize();
+    controller.initialize();
 
     // analogReadResolution(16);
     memset(rx_msg, 0, sizeof rx_msg);
 
+    loopBackStressTest();
 
 }
 
@@ -52,7 +78,6 @@ static const int size = 1024;
 
 char msg [120];
 uint16_t data_buffer [size];
-Controller controller;
 
 bool done = 0;
 
@@ -350,3 +375,6 @@ void transmitResultPacket (uint16_t* data)
 
     sprintf(msg, "DATA::END=1 RUNTIME=%u TXSIZE=%u", time, packet_size); SerialUSB.println(msg);
 }
+
+
+

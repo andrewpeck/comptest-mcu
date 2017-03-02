@@ -57,7 +57,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         cdac.writeThreshold(0); //
     }
 
-    delayMicroseconds(1000);
+    delayMicroseconds(100);
 
     /* wait for pulser ready... poll the board until it is OK. */
     // while (fpga.isReady()) ;
@@ -79,7 +79,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         pdac.write(dac_value);
 
         if (dac_value==dac_start)
-            delayMicroseconds(1000);
+            delayMicroseconds(100);
         else
             delayMicroseconds(10);
 

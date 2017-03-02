@@ -14,13 +14,13 @@ class Fpga {
 
         void writeAddress (uint8_t address, uint16_t data) {
 
-
-           SerialUSB.print("writing adr=");
-           SerialUSB.print(address);
-           SerialUSB.print("  data=");
-           SerialUSB.print(data);
-           SerialUSB.print("\r\n");
-
+//
+//           SerialUSB.print("writing adr=");
+//           SerialUSB.print(address);
+//           SerialUSB.print("  data=");
+//           SerialUSB.print(data);
+//           SerialUSB.print("\r\n");
+//
             setFpgaWrEn(1);
             setFpgaCs(1);
 
@@ -30,8 +30,6 @@ class Fpga {
             setFpgaWrEn(0);
             setFpgaCs(0);
 
-            delayMicroseconds(10);
-
             address = 0;
             readAddress(address);
         }
@@ -40,11 +38,11 @@ class Fpga {
             uint8_t adr = reg->getAdr();
             uint16_t data = reg->getData();
 
-           SerialUSB.print("intent writing adr=");
-           SerialUSB.print(adr);
-           SerialUSB.print("  data=");
-           SerialUSB.print(data);
-           SerialUSB.print("\r\n");
+           // SerialUSB.print("intent writing adr=");
+           // SerialUSB.print(adr);
+           // SerialUSB.print("  data=");
+           // SerialUSB.print(data);
+           // SerialUSB.print("\r\n");
 
 
             writeAddress(adr, data);
@@ -77,8 +75,6 @@ class Fpga {
 
             setFpgaCs(0);
 
-            delayMicroseconds(10);
-
             return read_data;
         }
 
@@ -95,7 +91,7 @@ class Fpga {
         void fire()
         {
             setFpgaFire(1);
-            delayMicroseconds(1);
+            delayMicroseconds(10);
             setFpgaFire(0);
         }
 
