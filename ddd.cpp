@@ -76,39 +76,39 @@ void DDD::writeDelay (ddd_config config)
     bool useSPI = 1;
 
     if (useSPI) {
-        digitalWrite(_latch_pin, LOW);
+        setDddAl(0);
         spin::transfer24 (data);
-        digitalWrite(_latch_pin, HIGH);
+        setDddAl(1);
     }
 
-    {
-        /* annoying 20 bit spi... just bit bang for now? */
-        /* later can try to see if we can clock in 4 dummy bits and use SPI */
-
-        /* make sure to end the spi bus */
-        SPI.end();
-        digitalWrite(_sclk_pin,  LOW);
-        digitalWrite(_mosi_pin,  LOW);
-        digitalWrite(_latch_pin, HIGH);
-
-        for (int iclk=0; iclk<20; iclk++) {
-            digitalWrite(_sclk_pin, LOW);
-
-            int databit = (0x1 & (data >> (19-iclk))) ? MOSI : 0; // Data
-
-            digitalWrite(_mosi_pin, databit);
-
-            digitalWrite(_sclk_pin, HIGH);
-        }
-
-        digitalWrite(_sclk_pin,  LOW);
-
-        // need at least 10 ns here
-        digitalWrite(_latch_pin, LOW);
-        delayMicroseconds(1);
-        digitalWrite(_latch_pin, HIGH);
-
-        /* renable SPI when we are done */
-        SPI.begin();
-    }
+//     {
+//         /* annoying 20 bit spi... just bit bang for now? */
+//         /* later can try to see if we can clock in 4 dummy bits and use SPI */
+//
+//         /* make sure to end the spi bus */
+//         SPI.end();
+//         digitalWrite(_sclk_pin,  LOW);
+//         digitalWrite(_mosi_pin,  LOW);
+//         digitalWrite(_latch_pin, HIGH);
+//
+//         for (int iclk=0; iclk<20; iclk++) {
+//             digitalWrite(_sclk_pin, LOW);
+//
+//             int databit = (0x1 & (data >> (19-iclk))) ? MOSI : 0; // Data
+//
+//             digitalWrite(_mosi_pin, databit);
+//
+//             digitalWrite(_sclk_pin, HIGH);
+//         }
+//
+//         digitalWrite(_sclk_pin,  LOW);
+//
+//         // need at least 10 ns here
+//         digitalWrite(_latch_pin, LOW);
+//         delayMicroseconds(1);
+//         digitalWrite(_latch_pin, HIGH);
+//
+//         /* renable SPI when we are done */
+//         SPI.begin();
+//     }
 }

@@ -7,8 +7,11 @@ namespace spin {
     }
 
     uint16_t transfer16 (uint16_t data_wr) {
-        uint16_t data_rd  = SPI.transfer ((data_wr >> 8) & 0xff)  << 0;
-        data_rd |= SPI.transfer ((data_wr >> 0) & 0xff)  << 8;
+        // msb first
+        uint16_t data_rd  = 0;
+        data_rd |= (SPI.transfer ((data_wr >> 8) & 0xff) ) << 8;
+        data_rd |= (SPI.transfer ((data_wr >> 0) & 0xff) ) << 0;
+        return data_rd;
     }
 
     void transfer24 (uint32_t data) {

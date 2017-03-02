@@ -30,14 +30,14 @@ void Controller::initialize()
 
     fpga.readAll();
 
-    bx_delay.set(BX_DELAY);
-    pulse_width.set(PULSE_WIDTH);
-    pkmode.set(PKMODE);
-    pktime.set(PKTIME);
-    triad_persist.set(TRIAD_PERSIST);
-    triad_persist1.set(TRIAD_PERSIST1);
-    compin_inject.set(COMPIN_INJECT);
-    lctrst.set(1);
+    bx_delay.set       (BX_DELAY);
+    pulse_width.set    (PULSE_WIDTH);
+    pkmode.set         (PKMODE);
+    pktime.set         (PKTIME);
+    triad_persist.set  (TRIAD_PERSIST);
+    triad_persist1.set (TRIAD_PERSIST1);
+    compin_inject.set  (COMPIN_INJECT);
+    lctrst.set         (1);
 
     fpga.writeAll();
 }
@@ -60,7 +60,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
     delayMicroseconds(1000);
 
     /* wait for pulser ready... poll the board until it is OK. */
-    while (fpga.isReady()) ;
+    // while (fpga.isReady()) ;
 
     // don't ask where this magic number came from...
     // its the number of different settings in a for loop that starts at 1 and skips values
@@ -69,7 +69,8 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
     //static const int NUM_SETTINGS = max/step + 1 - (max % step <=1) - (max % step==0 && step==1);
 
     fire_num_pulses.set(num_pulses);
-    fpga.writeAddress(fire_num_pulses.getAdr());
+    fpga.writeAddress(fire_num_pulses.adr());
+
     for (int index=0; index<1024; index++) {
 
         uint16_t dac_value = dac_start + index*dac_step;

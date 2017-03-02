@@ -2,9 +2,13 @@
 #include "erflut.h"
 #include "controller.h"
 #include "global_objects.h"
+#include "pinmodes.h"
+
+bool debug = 0;
 
 void(* resetFunc) (void) = 0; //declare reset function @ address 0
 
+char rx_msg [120];
 uint16_t start = 0;
 void setup () {
 
@@ -14,11 +18,12 @@ void setup () {
 
     SerialUSB.begin(115200);
 
+    setPinModes();
 
 // while(!SerialUSB);
 
 
-    while (!SerialUSB.available()) {};
+    //while (!SerialUSB.available()) {};
 
     //------------------------------------------------------------------------------------------------------------------
     // STARTUP
@@ -30,12 +35,16 @@ void setup () {
 
     SerialUSB.println("INFO::STARTING SPI");
     SPI.begin();
-  //SPI.setClockDivider(SPI_CLOCK_DIV8);
+    SPI.setClockDivider(SPI_CLOCK_DIV16);
   //SPI.setBitOrder(MSBFIRST);
 
     SerialUSB.println("INFO::STARTUP SEQUENCE FINISHED");
 
+    // controller.initialize();
+
     // analogReadResolution(16);
+    memset(rx_msg, 0, sizeof rx_msg);
+
 
 }
 
@@ -43,25 +52,81 @@ static const int size = 1024;
 
 char msg [120];
 uint16_t data_buffer [size];
-char rx_msg [120];
 Controller controller;
 
 bool done = 0;
 
-enum {cmd_offset, cmd_thresh, cmd_current};
+enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd};
+uint32_t loop_cnt;
+    uint8_t  rx_index = 0;
 
 void loop () {
+
+
+//     bool state = 0;
+//     while (true) {
+//             // put your main code here, to run repeatedly:
+// //            REG_PORT_OUTSET1 = PORT_PB11;     // Switch the output to 1 or HIGH
+// //            REG_PORT_OUTSET1 = PORT_PB10;     // Switch the output to 1 or HIGH
+// //            REG_PORT_OUTSET0 = PORT_PA08;     // Switch the output to 1 or HIGH
+//         setFpgaWrEn(0);
+//         setFpgaCs(0);
+//             delayMicroseconds(10);
+//         setFpgaWrEn(1);
+//         setFpgaCs(1);
+// //            REG_PORT_OUTCLR1 = PORT_PB11;     // Switch the output to 0 or LOW
+// //            REG_PORT_OUTCLR1 = PORT_PB10;     // Switch the output to 0 or LOW
+// //            REG_PORT_OUTCLR0 = PORT_PA08;      // Switch the output to 0 or LOW
+//             delayMicroseconds(10);
+//     }
+
+//            while (true) {
+//            digitalWrite(fpga_cs_pin,   0);
+//            digitalWrite(fpga_wren_pin, 0);
+//            digitalWrite(samd_io0, 0);
+//            digitalWrite(samd_io1, 0);
+//            digitalWrite(samd_io2, 0);
+//            digitalWrite(samd_io3, 0);
+//            digitalWrite(samd_io4, 0);
+//            digitalWrite(samd_io5, 0);
+//
+////            spin::transfer   (address);
+////            spin::transfer16 (data);
+//            delayMicroseconds(500);
+//
+//            digitalWrite(fpga_cs_pin,   1);
+//            digitalWrite(fpga_wren_pin, 1);
+//            digitalWrite(samd_io0, 1);
+//            digitalWrite(samd_io1, 1);
+//            digitalWrite(samd_io2, 1);
+//            digitalWrite(samd_io3, 1);
+//            digitalWrite(samd_io4, 1);
+//            digitalWrite(samd_io5, 1);
+//            delayMicroseconds(500);
+//            }
+
+    //if (debug) {
+//        loop_cnt++;
+//        if (loop_cnt % 500 == 0) {
+//            digitalWrite(fpga_cs_pin,   !digitalRead(fpga_cs_pin));
+//            digitalWrite(fpga_wren_pin, !digitalRead(fpga_wren_pin));
+//            SerialUSB.println("heartbeat...");
+//        }
+    //}
 
 start:
 
     uint8_t scan_channel;
-    uint8_t scan_side;
+    uint8_t scan_side; // side is really 8 bits but save the extras for doubling as register data
+    uint16_t write_data; // side is really 8 bits but save the extras for doubling as register data
     uint16_t dac_start;
     uint8_t dac_step;
     uint16_t num_pulses;
     uint8_t scan_cmd;
 
+
     if (SerialUSB.available()) {
+        //SerialUSB.println("dav");
 
         //--------------------------------------------------------------------------------------------------------------
         //
@@ -72,45 +137,57 @@ start:
         // offset      0       0
 
 
-        // read in an entire line from zerial (terminating on
-        uint8_t  rx_index = 0;
+        // read in an entire line from serial (terminating on
         char  rx_char;
 
         uint16_t start_cnt = 0;
 
-        memset(rx_msg, 0, sizeof rx_msg);
-
 
         while (SerialUSB.available() > 0) // Don't read unless
-            // there you know there is data
+            // you know there is data
         {
-            //if (start_cnt % 128 == 0)
-            //    SerialUSB.println(start_cnt);
-            start_cnt = start_cnt + 1;
+            //if (debug) {
+            //    if (start_cnt % 128 == 0)
+            //        SerialUSB.println(start_cnt);
+            //    start_cnt = start_cnt + 1;
+            //}
 
-            if(rx_index < 120) // One less than the size of the array
+            if (rx_index < 120) // One less than the size of the array
             {
-                rx_char          = SerialUSB.read(); // Read a character
-                // SerialUSB.print((char) rx_char);
+                rx_char = SerialUSB.read(); // Read a character
+
+                // if (debug) SerialUSB.print((char) rx_char);
 
                 if (rx_char=='\n') {
                     rx_msg[rx_index-1] = '\0';             // Null terminate the string, replacing the \r read previously (assuming \r\n)
+                    if (debug) SerialUSB.println("parsing string:");
+                    if (debug) SerialUSB.println(rx_msg);
+                    rx_index=0;
                     goto parse;
                 }
 
-                rx_msg[rx_index] = rx_char;          // Store it
-                rx_index         = rx_index + 1;     // Increment where to write next
+                // if (debug) SerialUSB.println("rx index:");
+                // if (debug) SerialUSB.println(rx_index);
+                // if (debug) SerialUSB.println("rx_msg:");
+                // if (debug) SerialUSB.println(rx_msg);
+                // if (debug) SerialUSB.println("rx_char:");
+                // if (debug) SerialUSB.println(rx_char);
 
-
+                rx_msg[rx_index] = rx_char; // Store it
+                rx_index = rx_index + 1;    // Increment where to write next
             }
 
             if (start_cnt > 10000)
-                SerialUSB.println("info::timeout);
+                SerialUSB.println("info::timeout");
                 goto start;
         }
 
 parse:
-        rx_index     = 0;
+
+        if (debug) SerialUSB.println("parsing:");
+        if (debug) SerialUSB.println(rx_msg);
+
+        char word_index     = 0;
         scan_cmd     = -1;
         scan_channel = 0;
         scan_side    = 0;
@@ -118,8 +195,9 @@ parse:
         dac_step     = 1;
         num_pulses   = 1;
 
-        for (char *p = strtok(rx_msg," "); p != NULL; p = strtok(NULL, " "))
-        {
+        for (char *p = strtok(rx_msg," "); p != NULL; p = strtok(NULL, " ")) {
+            // if (debug) SerialUSB.println("parsing:");
+            // if (debug) SerialUSB.println(p);
 
             // SerialUSB.println("Parsing String:");
             // SerialUSB.println(p);
@@ -127,13 +205,17 @@ parse:
             // SerialUSB.println(unsigned(strlen(p)));
 
             //- parse command-------------------------------------------------------------------------------------------
-            if (rx_index==0) {
+            if (word_index==0) {
                 if (strcmp (p,"offset")==0)
                     scan_cmd = cmd_offset;
                 else if (strcmp (p, "thresh")==0)
                     scan_cmd = cmd_thresh;
                 else if (strcmp (p, "current")==0)
                     scan_cmd = cmd_current;
+                else if (strcmp (p, "wr")==0)
+                    scan_cmd = cmd_wr;
+                else if (strcmp (p, "rd")==0)
+                    scan_cmd = cmd_rd;
                 else if (strcmp (p, "reset")==0) {
                     sprintf(msg, "INFO::RESETTING CONTROLLER"); SerialUSB.println(msg);
                     setup();
@@ -141,25 +223,36 @@ parse:
                 }
             }
 
+            // if (debug) SerialUSB.println("scancmd=");
+            // if (debug) SerialUSB.println(scan_cmd);
+
             //- parse parameters----------------------------------------------------------------------------------------
-            else if (rx_index==1) {
+            else if (word_index==1) {
                 scan_channel = strtol(p,NULL,0);
+             if (debug) SerialUSB.println("setting scan channel");
             }
-            else if (rx_index==2) {
-                scan_side = strtol(p,NULL,0);
+            else if (word_index==2) {
+                write_data = strtol(p,NULL,0);
+                scan_side = (uint8_t) write_data;
+             if (debug) SerialUSB.println("setting scan side");
             }
-            else if (rx_index==3) {
+            else if (word_index==3) {
                 dac_start = strtol(p,NULL,0);
+             if (debug) SerialUSB.println("setting dac start");
             }
-            else if (rx_index==4) {
+            else if (word_index==4) {
                 dac_step = strtol(p,NULL,0);
             }
-            else if (rx_index==5) {
+            else if (word_index==5) {
                 num_pulses = strtol(p,NULL,0);
             }
 
-            rx_index++;
+            word_index++;
         }
+
+
+        memset(rx_msg, 0, sizeof rx_msg);
+
 
         if (scan_cmd == cmd_offset) {
             scanOffset (scan_channel, scan_side, dac_start, dac_step, num_pulses, data_buffer);
@@ -172,7 +265,27 @@ parse:
         else if (scan_cmd == cmd_current) {
             scanCurrent (scan_channel, data_buffer);
         }
+        else if (scan_cmd == cmd_wr) {
+            writeRegister(scan_channel, write_data); // hijack these variables for our use
+        }
+        else if (scan_cmd == cmd_rd) {
+            readRegister(scan_channel); // hijack these variables for our use
+        }
     }
+
+
+}
+
+void writeRegister(uint8_t address, uint16_t data) {
+    sprintf(msg, "poke adr=0x%02X data=%04X", address, data);
+    fpga.writeAddress(address, data);
+    SerialUSB.println(msg);
+}
+
+void readRegister(uint8_t address) {
+    uint16_t data = fpga.readAddress(address);
+    sprintf(msg, "peek adr=0x%02X data=%04X", address, data);
+    SerialUSB.println(msg);
 }
 
 void scanOffset (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data) {

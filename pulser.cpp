@@ -13,56 +13,9 @@ void Pulser::setStrip (int strip, int side)
     if (strip<0 || strip>15)
         return;
 
-//    int high;
-//    int med;
-//    int low;
-//
-//    high = strip;
-//
-//    if (strip==0) {
-//        if (side==LEFT) {
-//            med (prev);
-//            low (strip+1);
-//        }
-//        else {
-//            low (prev);
-//            med (strip+1);
-//        }
-//    }
-//
-//    else if (strip=15) {
-//        if (side==LEFT) {
-//            med (strip-1);
-//            low (next);
-//        }
-//        else {
-//            low (strip-1);
-//            med (next);
-//        }
-//    }
-//
-//    else {
-//        if (side==LEFT) {
-//            med (strip-1);
-//            low (strip+1);
-//        }
-//        else {
-//            med (strip+1);
-//            low (strip-1);
-//        }
-//    }
-
-
-    active_strip_mask.set(0x1 << strip);
-    fpga.writeAddress(active_strip_mask.getAdr());
-
-    uint32_t halfstrip_mask = 0x1 << (strip*2+side);
-
-    halfstrips_expect_lsbs.set((halfstrip_mask>> 0) & 0xffff);
-    halfstrips_expect_msbs.set((halfstrip_mask>>16) & 0xffff);
-
-    fpga.writeAddress(halfstrips_expect_msbs.getAdr());
-    fpga.writeAddress(halfstrips_expect_lsbs.getAdr());
+    active_halfstrip.set(strip*2+side);
+    halfstrip_mask_en.set(1);
+    fpga.writeAddress(active_halfstrip.getAdr());
 
     writeMux(strip, side);
 }

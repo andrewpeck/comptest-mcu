@@ -6,47 +6,80 @@
 #include "spi.h"
 #include <stdint.h>
 #include <Arduino.h>
-#include "pinout.h"
+#include "pinmodes.h"
 
 class Fpga {
 
     public:
 
+        void writeAddress (uint8_t address, uint16_t data) {
+
+
+           SerialUSB.print("writing adr=");
+           SerialUSB.print(address);
+           SerialUSB.print("  data=");
+           SerialUSB.print(data);
+           SerialUSB.print("\r\n");
+
+            setFpgaWrEn(1);
+            setFpgaCs(1);
+
+            spin::transfer   (address);
+            spin::transfer16 (data);
+
+            setFpgaWrEn(0);
+            setFpgaCs(0);
+
+            delayMicroseconds(10);
+
+            address = 0;
+            readAddress(address);
+        }
+
         void writeAddress (Reg* reg) {
+            uint8_t adr = reg->getAdr();
+            uint16_t data = reg->getData();
 
-            digitalWrite(fpga_cs_pin, 0);
-            digitalWrite(fpga_wren_pin, 0);
+           SerialUSB.print("intent writing adr=");
+           SerialUSB.print(adr);
+           SerialUSB.print("  data=");
+           SerialUSB.print(data);
+           SerialUSB.print("\r\n");
 
-            spin::transfer   (reg->getAdr());
-            spin::transfer16 (reg->getData());
 
-            digitalWrite(fpga_cs_pin, 1);
-            digitalWrite(fpga_wren_pin, 1);
+            writeAddress(adr, data);
         }
 
         void writeAddress (uint8_t address) {
-
             writeAddress (reg_array[address]);
         }
 
         void readAddress (Reg* reg) {
 
-            digitalWrite(fpga_cs_pin, 0);
-            digitalWrite(fpga_wren_pin, 1); // wren = 1 for read-only
-
-            spin::transfer   (reg->getAdr());
-
-            reg->set(spin::transfer16 (0) );
-
-            digitalWrite(fpga_cs_pin, 1);
-            digitalWrite(fpga_wren_pin, 1);
+            uint8_t address = reg->getAdr();
+            uint16_t data = readAddress(address);
+            reg->set(data);
         }
 
-        void readAddress (uint8_t address) {
+        uint16_t readAddress (uint8_t address) {
 
-            Reg* reg = reg_array[address];
+            setFpgaCs(1);
 
-            readAddress (reg);
+//             SerialUSB.print("reading adr=");
+//             SerialUSB.print(address);
+
+            spin::transfer   (address);
+            uint16_t read_data = (spin::transfer16 (0) );
+
+//             SerialUSB.print("  data=");
+//             SerialUSB.print(read_data);
+//             SerialUSB.print("\r\n");
+
+            setFpgaCs(0);
+
+            delayMicroseconds(10);
+
+            return read_data;
         }
 
         void readAll () {
@@ -55,14 +88,15 @@ class Fpga {
         }
 
         void writeAll () {
-            for ( int i = 0; i<adr_last; i++ )
+            for ( int i = 1; i<adr_last; i++ ) // don't overwrite the loopback
                 writeAddress (reg_array[i]);
         }
 
         void fire()
         {
-            digitalWrite(fpga_fire_pin, 1);
-            digitalWrite(fpga_fire_pin, 0);
+            setFpgaFire(1);
+            delayMicroseconds(1);
+            setFpgaFire(0);
         }
 
         // go from a per strip amplitude configuration; guess a expected halfstrip response.
@@ -74,8 +108,9 @@ class Fpga {
 
         void resetCounters ()
         {
-            digitalWrite(fpga_reset_pin, 1);
-            digitalWrite(fpga_reset_pin, 0);
+            setFpgaReset(1);
+            delayMicroseconds(1);
+            setFpgaReset(0);
         }
 };
 

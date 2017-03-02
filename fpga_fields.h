@@ -4,21 +4,19 @@
 #include "register.h"
 
 enum {
-    adr_loopback          ,
-    adr_comp_config       ,
-    adr_fire_pulse        ,
-    adr_mux_ctrl          ,
-    adr_pulse_ctrl        ,
-    adr_pulse_ctrl2       ,
-    adr_halfstrips        ,
-    adr_halfstrips2       ,
-    adr_halfstrips_expect ,
-    adr_halfstrips_expect2,
-    adr_active_strip_mask ,
-    adr_offsets_errcnt    ,
-    adr_compout_errcnt    ,
-    adr_thresholds_errcnt ,
-    adr_last
+    adr_loopback          = 0  ,
+    adr_comp_config       = 1  ,
+    adr_fire_pulse        = 2  ,
+    adr_mux_ctrl          = 3  ,
+    adr_pulse_ctrl        = 4  ,
+    adr_pulse_ctrl2       = 5  ,
+    adr_halfstrips        = 6  ,
+    adr_halfstrips2       = 7  ,
+    adr_active_strip_mask = 9  ,
+    adr_offsets_errcnt    = 11 ,
+    adr_compout_errcnt    = 12 ,
+    adr_thresholds_errcnt = 13 ,
+    adr_last              = 14
 };
 
 extern Reg reg_loopback;
@@ -71,8 +69,9 @@ extern bitField halfstrips_expect_lsbs ;
 extern bitField halfstrips_expect_msbs ;
 
 
-extern Reg reg_active_strip_mask ;
-extern bitField active_strip_mask ;
+extern Reg reg_active_strip_mask;
+extern bitField active_halfstrip;
+extern bitField halfstrip_mask_en;
 
 extern Reg reg_offsets_errcnt ;
 extern bitField offsets_errcnt ;

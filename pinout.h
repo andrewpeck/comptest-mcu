@@ -1,11 +1,14 @@
 #ifndef PINOUT_H
 #define PINOUT_H
 
+#include <sam.h>
+
 #include <stdint.h>
+#include <Arduino.h>
 
 // map taken from variants.cpp
-enum {
 
+enum {
     // digital
     pa23 = 0,
     pa22 = 1,
@@ -57,24 +60,24 @@ enum {
     v_ibias_pin        = analog_4,
     comp_sense_5v5_pin = analog_5,
     comp_sense_3v3_pin = analog_6,
-    ddd_al_pin         = pb23,
-    pdac_en_pin        = pa21,
-    cdac_en_pin        = pa22,
-    samd_io0           = pa15, // fire (output)
-    samd_io1           = pa13, // ready (input)
-    samd_io2           = pa12, // reset counters (output)
-    samd_io3           = pa11, // fpga_select
-    samd_io4           = pa10,
-    samd_io5           = pa20
+
+    ddd_al_pin         = PORT_PB23,
+    pdac_en_pin        = PORT_PA21,
+    cdac_en_pin        = PORT_PA22,
+    samd_io0           = PORT_PA15, // fire (output)
+    samd_io1           = PORT_PA13, // ready (input)
+    samd_io2           = PORT_PA12, // reset counters (output)
+    samd_io3           = PORT_PB11, // fpga_select
+    samd_io4           = PORT_PB10, // fpga wr_en
+    samd_io5           = PORT_PA20
 };
 
 enum {
-    fpga_fire_pin = samd_io0,
-    fpga_ready_pin = samd_io1,
-    fpga_reset_pin = samd_io2,
-    fpga_cs_pin = samd_io3,
-    fpga_wren_pin = samd_io4
-
+    fpga_fire_pin  = samd_io0, // pa15
+    fpga_ready_pin = samd_io1, // pa13
+    fpga_reset_pin = samd_io2, // pa12
+    fpga_cs_pin    = samd_io3, // pb11
+    fpga_wren_pin  = samd_io4 // pb10
 };
 
 #endif /* pinout.h */

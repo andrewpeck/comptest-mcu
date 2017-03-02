@@ -1,6 +1,7 @@
 #include "dac.h"
 #include "spi.h"
 #include <cassert>
+#include "pinmodes.h"
 
 void AD5551::write (uint16_t dac_counts)
 {
@@ -8,9 +9,9 @@ void AD5551::write (uint16_t dac_counts)
 
     dac_counts &= 0x3fff; // 14 bit DAC--- upper pad the 2 msbs with zeroes
 
-    digitalWrite(_en_pin, LOW);
+    writeDirectPort0(_en_pin, LOW);
     spin::transfer16(dac_counts);
-    digitalWrite(_en_pin, HIGH);
+    writeDirectPort0(_en_pin, HIGH);
 }
 
 

@@ -2,6 +2,7 @@
 #define DDD_H
 
 #include <stdint.h>
+#include "pinmodes.h"
 
 class DDD {
 
