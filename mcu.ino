@@ -41,6 +41,7 @@ void setup () {
     // Start Serial
     //------------------------------------------------------------------------------------------------------------------
 
+
     SerialUSB.begin(115200);
 
     setPinModes();
@@ -60,7 +61,10 @@ void setup () {
 
     SerialUSB.println("INFO::STARTING SPI");
     SPI.begin();
-    SPI.setClockDivider(SPI_CLOCK_DIV16);
+
+
+    // fpga max is 4
+    SPI.setClockDivider(SPI_CLOCK_DIV16); // DO NOT run faster than 4.. confirmed that it breaks at 2
   //SPI.setBitOrder(MSBFIRST);
 
     SerialUSB.println("INFO::STARTUP SEQUENCE FINISHED");
@@ -87,6 +91,14 @@ uint32_t loop_cnt;
 
 void loop () {
 
+//    while (true) {
+//        for (uint16_t dacs=0; dacs<65536; dacs++) {
+//            pdac.write(dacs);
+//            cdac.write(dacs);
+//            if (dacs==0)
+//                delayMicroseconds (1000);
+//        }
+//    }
 
 //     bool state = 0;
 //     while (true) {

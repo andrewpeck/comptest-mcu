@@ -44,8 +44,8 @@ inline void setFpgaWrEn (bool state) {
 }
 
 inline void setFpgaReset (bool state) {
-    if (state) REG_PORT_OUTSET1 = fpga_reset_pin;
-    else       REG_PORT_OUTCLR1 = fpga_reset_pin;
+    if (state) REG_PORT_OUTSET0 = fpga_reset_pin;
+    else       REG_PORT_OUTCLR0 = fpga_reset_pin;
 }
 
 inline void setPinModes () {
@@ -62,7 +62,7 @@ inline void setPinModes () {
 
     ////  INPUTS ?????????????????
 
-    pinMode (fpga_ready_pin     , INPUT);  // ready
+    //pinMode (pa13     , INPUT);  // ready
     // pinMode (samd_io5     , INPUT); // unused
 
     // port b pins, set direction

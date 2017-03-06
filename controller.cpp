@@ -60,7 +60,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
     delayMicroseconds(100);
 
     /* wait for pulser ready... poll the board until it is OK. */
-    // while (fpga.isReady()) ;
+     while (!fpga.isReady()) ;
 
     // don't ask where this magic number came from...
     // its the number of different settings in a for loop that starts at 1 and skips values
@@ -89,20 +89,20 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         //    digitalWrite(6, 1);
         //    digitalWrite(6, 0);
         fpga.fire();
-//            while (fpga.isReady()) ;
+        while (!fpga.isReady()) ;
 //        }
 
         bitField *field = (test_type==test_thresh) ? &thresholds_errcnt : &offsets_errcnt;
 
-        fpga.readAddress (field->getAdr());
+        fpga.readAddress (field->adr());
 
         // optionally just send an error function from RAM
-        static const int useerf = 1;
+        static const int useerf = 0;
 
         if (useerf)
             data[index] = erflut[index];
         else
-            data[index] = field->get();
+            data[index] = field->data();
     }
 }
 

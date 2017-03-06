@@ -61,19 +61,19 @@ class Fpga {
 
         uint16_t readAddress (uint8_t address) {
 
+
+//            SerialUSB.print("reading adr=");
+//            SerialUSB.print(address);
+
             setFpgaCs(1);
-
-//             SerialUSB.print("reading adr=");
-//             SerialUSB.print(address);
-
             spin::transfer   (address);
             uint16_t read_data = (spin::transfer16 (0) );
-
-//             SerialUSB.print("  data=");
-//             SerialUSB.print(read_data);
-//             SerialUSB.print("\r\n");
-
             setFpgaCs(0);
+
+//            SerialUSB.print("  data=");
+//            SerialUSB.print(read_data, HEX);
+//            SerialUSB.print("\r\n");
+//
 
             return read_data;
         }
@@ -99,7 +99,12 @@ class Fpga {
 
         bool isReady ()
         {
-            return digitalRead(fpga_ready_pin);
+            //return digitalRead(pa13);
+            bool state =  (REG_PORT_IN0 & fpga_ready_pin)!=0;
+            //SerialUSB.print("state=");
+            //SerialUSB.print(state);
+            //SerialUSB.print("\r\n");
+            return (state);
         }
 
         void resetCounters ()

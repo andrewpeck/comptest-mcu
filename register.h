@@ -24,33 +24,33 @@ class Reg {
             return(_adr);
         }
         inline uint16_t getData () {
-            return(_data);
+            return (data());
         }
         inline uint16_t data () {
             return(_data);
         }
 
         void applyMask (uint16_t mask) {
-            SerialUSB.print("&= ~mask: ");
-            SerialUSB.print(mask, HEX);
-            SerialUSB.print("  to data: ");
-            SerialUSB.print(_data, HEX);
-            SerialUSB.print("\r\n");
+//            SerialUSB.print("&= ~mask: ");
+//            SerialUSB.print(mask, HEX);
+//            SerialUSB.print("  to data: ");
+//            SerialUSB.print(_data, HEX);
+//            SerialUSB.print("\r\n");
             _data &= ~mask;
-            SerialUSB.print("  and get: ");
-            SerialUSB.print(_data, HEX);
-            SerialUSB.print("\r\n");
+//            SerialUSB.print("  and get: ");
+//            SerialUSB.print(_data, HEX);
+//            SerialUSB.print("\r\n");
         }
 
         void applyData (uint16_t set_data) {
-            SerialUSB.print("ORing data: ");
-            SerialUSB.print(set_data, HEX);
-            SerialUSB.print("  to data: ");
-            SerialUSB.print(_data, HEX);
+//            SerialUSB.print("ORing data: ");
+//            SerialUSB.print(set_data, HEX);
+//            SerialUSB.print("  to data: ");
+            //SerialUSB.print(_data, HEX);
             _data |= set_data;
-            SerialUSB.print("  and get: ");
-            SerialUSB.print(_data, HEX);
-            SerialUSB.print("\r\n");
+//            SerialUSB.print("  and get: ");
+//            SerialUSB.print(_data, HEX);
+//            SerialUSB.print("\r\n");
         }
 
     private:
@@ -73,26 +73,30 @@ class bitField {
     };
 
         void set (uint16_t value)  {
-
-            SerialUSB.print("bitmask: ");
-            SerialUSB.print(_bitmask, HEX);
-            SerialUSB.print("     fieldmask: ");
-            SerialUSB.print(_fieldmask, HEX);
-            SerialUSB.print("     bithi: ");
-            SerialUSB.print(_bithi);
-            SerialUSB.print("     bitlow: ");
-            SerialUSB.print(_bitlow);
-            SerialUSB.print("     setval: ");
-            SerialUSB.print(value);
-            SerialUSB.print("\r\n");
+//
+//            SerialUSB.print("bitmask: ");
+//            SerialUSB.print(_bitmask, HEX);
+//            SerialUSB.print("     fieldmask: ");
+//            SerialUSB.print(_fieldmask, HEX);
+//            SerialUSB.print("     bithi: ");
+//            SerialUSB.print(_bithi);
+//            SerialUSB.print("     bitlow: ");
+//            SerialUSB.print(_bitlow);
+//            SerialUSB.print("     setval: ");
+//            SerialUSB.print(value);
+//            SerialUSB.print("\r\n");
 
             _reg->applyMask(_bitmask);
             _reg->applyData((value & _fieldmask) << _bitlow);
 
         }
 
+        uint16_t data () {
+            return  ((_reg->data() >> _bitlow) & _fieldmask);
+        }
+
         uint16_t get () {
-            return  ((_reg->getData() >> _bitlow) & _fieldmask);
+            return  data();
         }
 
         inline uint8_t getAdr () { return (_reg->getAdr()); }
