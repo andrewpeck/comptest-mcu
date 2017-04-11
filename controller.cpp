@@ -19,10 +19,14 @@ void Controller::initialize()
     // Configure SPI Peripherals
     //------------------------------------------------------------------------------------------------------------------
 
-    ddd.setDelay(DDD_DELAY);
+    bool use_ddd=0;
 
-    cdac.write(0);
-    pdac.write(0);
+    if (use_ddd) {
+        ddd.setDelay(DDD_DELAY);
+    }
+
+//    cdac.write(0);
+//    pdac.write(0);
 
     //------------------------------------------------------------------------------------------------------------------
     // Default FPGA Configuration
@@ -37,9 +41,94 @@ void Controller::initialize()
     triad_persist.set  (TRIAD_PERSIST);
     triad_persist1.set (TRIAD_PERSIST1);
     compin_inject.set  (COMPIN_INJECT);
-    lctrst.set         (1);
+    lctrst.set         (0);
 
-    fpga.writeAll();
+    fpga.resetCounters();
+
+    fire_pulse.set(0);
+    offset_errcnt_rst.set(0);
+    compout_errcnt_rst.set(0);
+    thresholds_errcnt_rst.set(0);
+
+    fpga.writeAddress(fire_pulse.adr());
+    fpga.writeAddress(bx_delay.adr());
+    fpga.writeAddress(pulse_width.adr());
+    fpga.writeAddress(pkmode.adr());
+    fpga.writeAddress(pktime.adr());
+    fpga.writeAddress(triad_persist.adr());
+    fpga.writeAddress(triad_persist1.adr());
+    fpga.writeAddress(compin_inject.adr());
+    fpga.writeAddress(lctrst.adr());
+
+
+}
+
+void Controller::scan (uint16_t dac_value) {
+    for (int istrip=0; istrip<16; istrip++) {
+    for (int iside=0; iside<2; iside++) {
+        pulse (dac_value, 10, 1, istrip, iside);
+    }
+    }
+}
+
+void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loops, uint8_t strip=1, uint8_t side=0) {
+
+while (!fpga.isReady()) ;
+
+//initialize();
+
+cdac.writeThreshold(40); //
+
+fire_num_pulses.set(num_pulses);
+fpga.writeAddress(fire_num_pulses.adr());
+//
+// //           //    SerialUSB.print ("Setting DAC to: ");
+// //           //    SerialUSB.print (dac_value, HEX);
+// //           //    SerialUSB.print ("\r\n");
+pdac.write(dac_value);
+//
+// //            //   SerialUSB.print ("Setting mux to strip=");
+// //            //   SerialUSB.print (strip);
+// //            //   SerialUSB.print (" side=");
+// //            //   SerialUSB.print (side);
+// //            //   SerialUSB.print ("\r\n");
+//
+pulser.setStrip(strip, side);
+//
+delayMicroseconds(10);
+//
+//
+         for (uint16_t loop=0; loop<num_loops; loop++) {
+            fpga.fire();
+            while (!fpga.isReady()) ;
+            //delayMicroseconds(4);
+         }
+
+         fpga.readAddress(adr_halfstrips);
+         fpga.readAddress(adr_halfstrips2);
+
+         uint32_t halfstrips = (halfstrips_msbs.get() << 16) | halfstrips_lsbs.get();
+
+         for (int i=0; i<32; i++) {
+             if (i==(strip*2 + side)) {
+                 if  ((halfstrips >> i) & 0x1)
+                    SerialUSB.print("x");
+                 else
+                    SerialUSB.print(" ");
+             }
+             else {
+                 if  ((halfstrips >> i) & 0x1)
+                    SerialUSB.print("-");
+                 else
+                    SerialUSB.print(" ");
+             }
+         }
+         SerialUSB.print("  (");
+         SerialUSB.print(strip);
+         SerialUSB.print(", ");
+         SerialUSB.print(side);
+         SerialUSB.print(")");
+         SerialUSB.print ("\r\n");
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -85,12 +174,8 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
 
         fpga.resetCounters();
 
-        //for (int ipulse=0; ipulse < 10; ipulse++) {
-        //    digitalWrite(6, 1);
-        //    digitalWrite(6, 0);
         fpga.fire();
         while (!fpga.isReady()) ;
-//        }
 
         bitField *field = (test_type==test_thresh) ? &thresholds_errcnt : &offsets_errcnt;
 

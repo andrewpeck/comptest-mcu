@@ -8,10 +8,10 @@ enum Side      {LEFT, RIGHT};
 
 class Pulser {
     public:
-        void setStrip (int strip, int side);
+        void setStrip (uint8_t strip, uint8_t side);
     private:
 
-        void writeMux(int strip, int side);
+        void writeMux(uint8_t strip, uint8_t side);
 };
 
 #endif /* PULSER_H */

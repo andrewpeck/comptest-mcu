@@ -12,7 +12,9 @@ enum {
     adr_pulse_ctrl2       = 5  ,
     adr_halfstrips        = 6  ,
     adr_halfstrips2       = 7  ,
+    dummy0                = 8  ,
     adr_active_strip_mask = 9  ,
+    dummy1                = 10 ,
     adr_offsets_errcnt    = 11 ,
     adr_compout_errcnt    = 12 ,
     adr_thresholds_errcnt = 13 ,
@@ -20,7 +22,7 @@ enum {
 };
 
 extern Reg reg_loopback;
-extern bitField loopback ;
+extern bitField loopback;
 
 extern Reg reg_comp_config;
 extern bitField pktime ;
@@ -83,6 +85,9 @@ extern Reg reg_thresholds_errcnt ;
 extern bitField thresholds_errcnt ;
 
 // hacky way of indexing registers by their addresses
+
+extern Reg dum0;
+extern Reg dum1;
 
 extern Reg* reg_array [adr_last];
 

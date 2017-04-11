@@ -22,11 +22,11 @@ bitField bx_delay (&reg_pulse_ctrl, 11, 14);
 bitField compout_expect (&reg_pulse_ctrl, 15, 15);
 
 Reg reg_pulse_ctrl2 (adr_pulse_ctrl2);
-bitField triad_persist (&reg_pulse_ctrl, 0, 3);
-bitField triad_persist1 (&reg_pulse_ctrl, 4, 4);
-bitField mux_en (&reg_pulse_ctrl, 5, 5);
-bitField compout_last (&reg_pulse_ctrl, 6, 6);
-bitField pulser_ready (&reg_pulse_ctrl, 7, 7);
+bitField triad_persist (&reg_pulse_ctrl2, 0, 3);
+bitField triad_persist1 (&reg_pulse_ctrl2, 4, 4);
+bitField mux_en (&reg_pulse_ctrl2, 5, 5);
+bitField compout_last (&reg_pulse_ctrl2, 6, 6);
+bitField pulser_ready (&reg_pulse_ctrl2, 7, 7);
 
 Reg reg_mux_ctrl (adr_mux_ctrl);
 
@@ -58,6 +58,9 @@ bitField compout_errcnt (&reg_compout_errcnt, 0, 15);
 Reg reg_thresholds_errcnt (adr_thresholds_errcnt);
 bitField thresholds_errcnt (&reg_thresholds_errcnt, 0, 15);
 
+Reg dum0 (dummy0);
+Reg dum1 (dummy0);
+
 // hacky way of indexing registers by their addresses
 Reg* reg_array [adr_last] = {
     &reg_loopback          ,
@@ -68,7 +71,9 @@ Reg* reg_array [adr_last] = {
     &reg_pulse_ctrl2       ,
     &reg_halfstrips        ,
     &reg_halfstrips2       ,
+    &dum0                ,
     &reg_active_strip_mask ,
+    &dum1                ,
     &reg_offsets_errcnt    ,
     &reg_compout_errcnt    ,
     &reg_thresholds_errcnt ,

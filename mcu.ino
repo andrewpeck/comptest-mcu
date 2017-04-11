@@ -71,7 +71,7 @@ void setup () {
 
     controller.initialize();
 
-    // analogReadResolution(16);
+    analogReadResolution(14);
     memset(rx_msg, 0, sizeof rx_msg);
 
     loopBackStressTest();
@@ -85,85 +85,31 @@ uint16_t data_buffer [size];
 
 bool done = 0;
 
-enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd};
+enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan};
 uint32_t loop_cnt;
     uint8_t  rx_index = 0;
 
 void loop () {
 
-//    while (true) {
-//        for (uint16_t dacs=0; dacs<65536; dacs++) {
-//            pdac.write(dacs);
-//            cdac.write(dacs);
-//            if (dacs==0)
-//                delayMicroseconds (1000);
-//        }
-//    }
-
-//     bool state = 0;
-//     while (true) {
-//             // put your main code here, to run repeatedly:
-// //            REG_PORT_OUTSET1 = PORT_PB11;     // Switch the output to 1 or HIGH
-// //            REG_PORT_OUTSET1 = PORT_PB10;     // Switch the output to 1 or HIGH
-// //            REG_PORT_OUTSET0 = PORT_PA08;     // Switch the output to 1 or HIGH
-//         setFpgaWrEn(0);
-//         setFpgaCs(0);
-//             delayMicroseconds(10);
-//         setFpgaWrEn(1);
-//         setFpgaCs(1);
-// //            REG_PORT_OUTCLR1 = PORT_PB11;     // Switch the output to 0 or LOW
-// //            REG_PORT_OUTCLR1 = PORT_PB10;     // Switch the output to 0 or LOW
-// //            REG_PORT_OUTCLR0 = PORT_PA08;      // Switch the output to 0 or LOW
-//             delayMicroseconds(10);
-//     }
-
-//            while (true) {
-//            digitalWrite(fpga_cs_pin,   0);
-//            digitalWrite(fpga_wren_pin, 0);
-//            digitalWrite(samd_io0, 0);
-//            digitalWrite(samd_io1, 0);
-//            digitalWrite(samd_io2, 0);
-//            digitalWrite(samd_io3, 0);
-//            digitalWrite(samd_io4, 0);
-//            digitalWrite(samd_io5, 0);
-//
-////            spin::transfer   (address);
-////            spin::transfer16 (data);
-//            delayMicroseconds(500);
-//
-//            digitalWrite(fpga_cs_pin,   1);
-//            digitalWrite(fpga_wren_pin, 1);
-//            digitalWrite(samd_io0, 1);
-//            digitalWrite(samd_io1, 1);
-//            digitalWrite(samd_io2, 1);
-//            digitalWrite(samd_io3, 1);
-//            digitalWrite(samd_io4, 1);
-//            digitalWrite(samd_io5, 1);
-//            delayMicroseconds(500);
-//            }
-
-    //if (debug) {
-//        loop_cnt++;
-//        if (loop_cnt % 500 == 0) {
-//            digitalWrite(fpga_cs_pin,   !digitalRead(fpga_cs_pin));
-//            digitalWrite(fpga_wren_pin, !digitalRead(fpga_wren_pin));
-//            SerialUSB.println("heartbeat...");
-//        }
-    //}
-
 start:
 
-    uint8_t scan_channel;
-    uint8_t scan_side; // side is really 8 bits but save the extras for doubling as register data
-    uint16_t write_data; // side is really 8 bits but save the extras for doubling as register data
-    uint16_t dac_start;
-    uint8_t dac_step;
+    uint8_t   scan_channel;
+    uint16_t  param1;
+
+    uint8_t  scan_side;  // side is really 8 bits but save the extras for doubling as register data
+    uint16_t param2; // side is really 8 bits but save the extras for doubling as register data
+
+    uint16_t param3;
+    uint16_t param4;
+    uint16_t param5;
+
+    uint8_t  dac_step;
+
     uint16_t num_pulses;
-    uint8_t scan_cmd;
+    uint8_t  scan_cmd;
 
 
     if (SerialUSB.available()) {
-        //SerialUSB.println("dav");
 
         //--------------------------------------------------------------------------------------------------------------
         //
@@ -228,9 +174,9 @@ parse:
         scan_cmd     = -1;
         scan_channel = 0;
         scan_side    = 0;
-        dac_start    = 0;
-        dac_step     = 1;
-        num_pulses   = 1;
+        param3       = 0;
+        param4       = 1;
+        param5       = 1;
 
         for (char *p = strtok(rx_msg," "); p != NULL; p = strtok(NULL, " ")) {
             // if (debug) SerialUSB.println("parsing:");
@@ -253,6 +199,10 @@ parse:
                     scan_cmd = cmd_wr;
                 else if (strcmp (p, "rd")==0)
                     scan_cmd = cmd_rd;
+                else if (strcmp (p, "pulse")==0)
+                    scan_cmd = cmd_pulse;
+                else if (strcmp (p, "scan")==0)
+                    scan_cmd = cmd_scan;
                 else if (strcmp (p, "reset")==0) {
                     sprintf(msg, "INFO::RESETTING CONTROLLER"); SerialUSB.println(msg);
                     setup();
@@ -265,22 +215,25 @@ parse:
 
             //- parse parameters----------------------------------------------------------------------------------------
             else if (word_index==1) {
-                scan_channel = strtol(p,NULL,0);
-             if (debug) SerialUSB.println("setting scan channel");
+                param1       = strtol(p,NULL,0);
+                scan_channel = (uint8_t) param1;
+                if (debug) SerialUSB.println("setting scan channel");
             }
             else if (word_index==2) {
-                write_data = strtol(p,NULL,0);
-                scan_side = (uint8_t) write_data;
-             if (debug) SerialUSB.println("setting scan side");
+                param2 = strtol(p,NULL,0);
+                scan_side = (uint8_t) param2;
+                if (debug) SerialUSB.println("setting scan side");
             }
             else if (word_index==3) {
-                dac_start = strtol(p,NULL,0);
-             if (debug) SerialUSB.println("setting dac start");
+                param3 = strtol(p,NULL,0);
+                if (debug) SerialUSB.println("setting dac start");
             }
             else if (word_index==4) {
+                param4 = strtol(p,NULL,0);
                 dac_step = strtol(p,NULL,0);
             }
             else if (word_index==5) {
+                param5 = strtol(p,NULL,0);
                 num_pulses = strtol(p,NULL,0);
             }
 
@@ -292,21 +245,41 @@ parse:
 
 
         if (scan_cmd == cmd_offset) {
-            scanOffset (scan_channel, scan_side, dac_start, dac_step, num_pulses, data_buffer);
+            scanOffset (uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
         }
 
         else if (scan_cmd == cmd_thresh) {
-            scanThresh (scan_channel, scan_side, dac_start, dac_step, num_pulses, data_buffer);
+            scanThresh (uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
         }
 
         else if (scan_cmd == cmd_current) {
-            scanCurrent (scan_channel, data_buffer);
+            // scanCurrent (uint8_t(param1), data_buffer);
+            SerialUSB.print ("    ifamp=");
+            SerialUSB.print ((analogRead(0)*3.3)/16536);
+            SerialUSB.print ("    iamp=");
+            SerialUSB.print ((analogRead(1)*3.3)/16536);
+            SerialUSB.print ("    ioff=");
+            SerialUSB.print ((analogRead(2)*3.3)/16536);
+            SerialUSB.print ("    ibias=");
+            SerialUSB.print ((analogRead(3)*3.3)/16536);
+            SerialUSB.print ("    +5v0=");
+            SerialUSB.print ((analogRead(4)*3.3)/16536);
+            SerialUSB.print ("    +3v3=");
+            SerialUSB.print ((analogRead(5)*3.3)/16536);
+            SerialUSB.print ("\r\n");
+
         }
         else if (scan_cmd == cmd_wr) {
-            writeRegister(scan_channel, write_data); // hijack these variables for our use
+            writeRegister(uint8_t(param1), param2); // hijack these variables for our use
         }
         else if (scan_cmd == cmd_rd) {
-            readRegister(scan_channel); // hijack these variables for our use
+            readRegister(uint8_t(param1)); // hijack these variables for our use
+        }
+        else if (scan_cmd == cmd_pulse) {
+            controller.pulse(param1, param2, param3, param4, param5);
+        }
+        else if (scan_cmd == cmd_scan) {
+            controller.scan(param1);
         }
     }
 

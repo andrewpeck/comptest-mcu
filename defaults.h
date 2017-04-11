@@ -6,11 +6,11 @@
 // static const auto PKMODE = Comparator::PKMODE0;
 // static const auto PKTIME = Comparator::PKTIME25;
 
-static const uint8_t BX_DELAY = 6;
-static const uint8_t PULSE_WIDTH = 4;
+static const uint8_t BX_DELAY = 0x8;  // in reality, measure ~22bx between pulse and receiving decoded triads.   Open window at 16, look for 32 bx should be ok.
+static const uint8_t PULSE_WIDTH = 0x2;
 static const uint8_t PKMODE = 2;
 static const uint8_t PKTIME = 1;
-static const uint8_t TRIAD_PERSIST = 4;
+static const uint8_t TRIAD_PERSIST = 2;
 static const uint8_t TRIAD_PERSIST1 = 0;
 static const uint8_t COMPIN_INJECT = 0;
 static const uint8_t DDD_DELAY = 0;

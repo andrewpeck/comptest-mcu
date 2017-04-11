@@ -14,13 +14,6 @@ class Fpga {
 
         void writeAddress (uint8_t address, uint16_t data) {
 
-//
-//           SerialUSB.print("writing adr=");
-//           SerialUSB.print(address);
-//           SerialUSB.print("  data=");
-//           SerialUSB.print(data);
-//           SerialUSB.print("\r\n");
-//
             setFpgaWrEn(1);
             setFpgaCs(1);
 
@@ -38,13 +31,6 @@ class Fpga {
             uint8_t adr = reg->getAdr();
             uint16_t data = reg->getData();
 
-           // SerialUSB.print("intent writing adr=");
-           // SerialUSB.print(adr);
-           // SerialUSB.print("  data=");
-           // SerialUSB.print(data);
-           // SerialUSB.print("\r\n");
-
-
             writeAddress(adr, data);
         }
 
@@ -52,28 +38,26 @@ class Fpga {
             writeAddress (reg_array[address]);
         }
 
-        void readAddress (Reg* reg) {
+        uint16_t readAddress (Reg* reg) {
 
-            uint8_t address = reg->getAdr();
-            uint16_t data = readAddress(address);
-            reg->set(data);
+            setFpgaCs(1);
+            spin::transfer   (reg->adr());
+            uint16_t read_data = (spin::transfer16 (0) );
+            setFpgaCs(0);
+
+            reg -> set(read_data);
+
+            return read_data;
         }
 
         uint16_t readAddress (uint8_t address) {
-
-
-//            SerialUSB.print("reading adr=");
-//            SerialUSB.print(address);
 
             setFpgaCs(1);
             spin::transfer   (address);
             uint16_t read_data = (spin::transfer16 (0) );
             setFpgaCs(0);
 
-//            SerialUSB.print("  data=");
-//            SerialUSB.print(read_data, HEX);
-//            SerialUSB.print("\r\n");
-//
+            reg_array[address] -> set(read_data);
 
             return read_data;
         }
@@ -99,11 +83,7 @@ class Fpga {
 
         bool isReady ()
         {
-            //return digitalRead(pa13);
             bool state =  (REG_PORT_IN0 & fpga_ready_pin)!=0;
-            //SerialUSB.print("state=");
-            //SerialUSB.print(state);
-            //SerialUSB.print("\r\n");
             return (state);
         }
 

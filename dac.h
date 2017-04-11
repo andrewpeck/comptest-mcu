@@ -35,7 +35,7 @@ class PDAC : public AD5551 {
 class CDAC : public AD5551 {
     public:
         void writeThreshold (float millivolts);
-        CDAC () : AD5551 (cdac_en_pin, 3.3) {}; // FIXME: need the right pin numbers
+        CDAC () : AD5551 (cdac_en_pin, 3.58) {}; // FIXME: need the right voltages
 };
 
 #endif

@@ -30,6 +30,6 @@ void CDAC::writeThreshold (float millivolts)
 {
     //assert (millivolts>=0);
 
-    int dac_counts = (_vref*1000-millivolts)*((1<<14)-1)/_vref;
+    int dac_counts = (_vref*1000-millivolts)*((1<<14)-1)/(_vref*1000);
     write(dac_counts);
 }
