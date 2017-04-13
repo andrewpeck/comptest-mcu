@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 enum Amplitude {PULSE_HIGH, PULSE_MED, PULSE_LOW, PULSE_OFF};
-enum Side      {LEFT, RIGHT};
+enum Side      {LEFT=0, RIGHT=1};
 
 class Pulser {
     public:
