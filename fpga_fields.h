@@ -18,7 +18,8 @@ enum {
     adr_offsets_errcnt    = 11 ,
     adr_compout_errcnt    = 12 ,
     adr_thresholds_errcnt = 13 ,
-    adr_last              = 14
+    adr_restore_cnt       = 14 ,
+    adr_last              = 15
 };
 
 extern Reg reg_loopback;
@@ -83,6 +84,9 @@ extern bitField compout_errcnt ;
 
 extern Reg reg_thresholds_errcnt ;
 extern bitField thresholds_errcnt ;
+
+extern Reg reg_restore_cnt ;
+extern bitField restore_cnt ;
 
 // hacky way of indexing registers by their addresses
 

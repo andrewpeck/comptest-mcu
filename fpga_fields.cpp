@@ -58,6 +58,9 @@ bitField compout_errcnt (&reg_compout_errcnt, 0, 15);
 Reg reg_thresholds_errcnt (adr_thresholds_errcnt);
 bitField thresholds_errcnt (&reg_thresholds_errcnt, 0, 15);
 
+Reg reg_restore_cnt (adr_restore_cnt);
+bitField restore_cnt (&reg_restore_cnt, 0, 15);
+
 Reg dum0 (dummy0);
 Reg dum1 (dummy0);
 
@@ -77,4 +80,5 @@ Reg* reg_array [adr_last] = {
     &reg_offsets_errcnt    ,
     &reg_compout_errcnt    ,
     &reg_thresholds_errcnt ,
+    &reg_restore_cnt
 };
