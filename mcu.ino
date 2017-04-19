@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include "defaults.h"
 #include "erflut.h"
 #include "controller.h"
 #include "global_objects.h"
@@ -10,7 +11,6 @@ void(* resetFunc) (void) = 0; //declare reset function @ address 0
 
 char rx_msg [120];
 uint16_t start = 0;
-
 
 void loopBackStressTest () {
 
@@ -85,7 +85,7 @@ uint16_t data_buffer [size];
 
 bool done = 0;
 
-enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan};
+enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan, cmd_timescan, cmd_modescan};
 uint32_t loop_cnt;
     uint8_t  rx_index = 0;
 
@@ -203,6 +203,10 @@ parse:
                     scan_cmd = cmd_pulse;
                 else if (strcmp (p, "scan")==0)
                     scan_cmd = cmd_scan;
+                else if (strcmp (p, "timing")==0)
+                    scan_cmd = cmd_timescan;
+                else if (strcmp (p, "mode")==0)
+                    scan_cmd = cmd_modescan;
                 else if (strcmp (p, "reset")==0) {
                     sprintf(msg, "INFO::RESETTING CONTROLLER"); SerialUSB.println(msg);
                     setup();
@@ -253,20 +257,20 @@ parse:
         }
 
         else if (scan_cmd == cmd_current) {
-            // scanCurrent (uint8_t(param1), data_buffer);
-            SerialUSB.print ("    ifamp=");
-            SerialUSB.print ((analogRead(0)*3.3)/16536);
-            SerialUSB.print ("    iamp=");
-            SerialUSB.print ((analogRead(1)*3.3)/16536);
-            SerialUSB.print ("    ioff=");
-            SerialUSB.print ((analogRead(2)*3.3)/16536);
-            SerialUSB.print ("    ibias=");
-            SerialUSB.print ((analogRead(3)*3.3)/16536);
-            SerialUSB.print ("    +5v0=");
-            SerialUSB.print ((analogRead(4)*3.3)/16536);
-            SerialUSB.print ("    +3v3=");
-            SerialUSB.print ((analogRead(5)*3.3)/16536);
-            SerialUSB.print ("\r\n");
+            scanCurrent (uint8_t(param1), data_buffer);
+            //SerialUSB.print ("    ifamp=");
+            //SerialUSB.print ((analogRead(0)*3.3)/16536);
+            //SerialUSB.print ("    iamp=");
+            //SerialUSB.print ((analogRead(1)*3.3)/16536);
+            //SerialUSB.print ("    ioff=");
+            //SerialUSB.print ((analogRead(2)*3.3)/16536);
+            //SerialUSB.print ("    ibias=");
+            //SerialUSB.print ((analogRead(3)*3.3)/16536);
+            //SerialUSB.print ("    +5v0=");
+            //SerialUSB.print ((analogRead(4)*3.3)/16536);
+            //SerialUSB.print ("    +3v3=");
+            //SerialUSB.print ((analogRead(5)*3.3)/16536);
+            //SerialUSB.print ("\r\n");
 
         }
         else if (scan_cmd == cmd_wr) {
@@ -280,6 +284,12 @@ parse:
         }
         else if (scan_cmd == cmd_scan) {
             controller.scan(param1);
+        }
+        else if (scan_cmd == cmd_timescan) {
+            controller.scanPeakTiming(param1, param2, param3);
+        }
+        else if (scan_cmd == cmd_modescan) {
+            controller.scanMode(param1, param2, param3, param4);
         }
     }
 
@@ -305,11 +315,17 @@ void scanOffset (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_s
     sprintf(msg, "DATA::START=1 TEST=OFFSET  STRIP=%i SIDE=%i DAC_START=%i DAC_STEP=%i NUM_PULSES=%i", strip,side,dac_start,dac_step,num_pulses);
     SerialUSB.println(msg);
 
-    pulser.setStrip(strip, side);
+    transmitStartString();
+
+    pulser.setStrip(strip, side, test_offset);
 
     controller.offsetScan(dac_start, dac_step, num_pulses, data);
 
-    transmitResultPacket(data);
+    if (!split_packets) {
+        transmitResultPacket(data);
+    }
+
+    transmitEndString();
 }
 
 void scanThresh (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data) {
@@ -319,11 +335,17 @@ void scanThresh (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_s
     sprintf(msg, "DATA::START=1 TEST=THRESH  STRIP=%i SIDE=%i DAC_START=%i DAC_STEP=%i NUM_PULSES=%i", strip,side,dac_start,dac_step,num_pulses);
     SerialUSB.println(msg);
 
-    pulser.setStrip(strip, side);
+    transmitStartString();
+
+    pulser.setStrip(strip, side, test_thresh);
 
     controller.threshScan(dac_start, dac_step, num_pulses, data);
 
-    transmitResultPacket(data);
+    if (!split_packets) {
+        transmitResultPacket(data);
+    }
+
+    transmitEndString();
 }
 
 void scanCurrent (uint8_t channel, uint16_t* data) {
@@ -336,23 +358,51 @@ void scanCurrent (uint8_t channel, uint16_t* data) {
 
     sprintf(msg, "DATA::START=1 TEST=CURRENT  CHANNEL=%i", channel);
     SerialUSB.println(msg);
+
+    transmitStartString();
     transmitResultPacket(data);
+    transmitEndString();
 }
 
 void transmitResultPacket (uint16_t* data)
 {
+    // thresh 0 1 100 1 1000
+    // 1 short per packet  = 20522 ms
+    // 4 shorts per packet = 20513 ms
+    // 8 shorts per packet = 20545 ms
 
-    SerialUSB.print ("BIN:::");
+    //    for (int ipacket=0; ipacket<64; ipacket+=1) {
+    //        for (int icounter=0; icounter<size/256; icounter+=1) {
+    //            int start = ipacket * 16 + icounter*4;
+    //            sprintf(msg, "%04X%04X%04X%04X", (data[start]), (data[start+1]), (data[start+2]), (data[start+3]));
+    //            SerialUSB.print(msg);
+    //        }
+    //
+    //    }
 
-    for (int ipacket=0; ipacket<64; ipacket+=1) {
-        for (int icounter=0; icounter<size/256; icounter+=1) {
-            int start = ipacket * 16 + icounter*4;
-            sprintf(msg, "%04X%04X%04X%04X", (data[start]), (data[start+1]), (data[start+2]), (data[start+3]));
+    for (int ipacket=0; ipacket<1024; ipacket+=1) {
+            sprintf (msg, "%04X", data[ipacket]);
             SerialUSB.print(msg);
-        }
-
     }
 
+    //for (int ipacket=0; ipacket<32; ipacket+=1) {
+    //    for (int icounter=0; icounter<8; icounter+=1) {
+    //        int start = ipacket * 16 + icounter*8;
+    //        sprintf (msg, "%04X%04X%04X%04X%04X%04X%04X%04X", data[start], data[start+1], data[start+2], data[start+3], data[start+4], data[start+5], data[start+6], data[start+7] );
+    //        SerialUSB.print(msg);
+    //    }
+
+    //}
+
+}
+
+void transmitStartString ()
+{
+    SerialUSB.print ("BIN:::");
+}
+
+void transmitEndString ()
+{
     SerialUSB.print ("\r\n");
 
     uint16_t time = millis() - start;
@@ -360,6 +410,3 @@ void transmitResultPacket (uint16_t* data)
 
     sprintf(msg, "DATA::END=1 RUNTIME=%u TXSIZE=%u", time, packet_size); SerialUSB.println(msg);
 }
-
-
-

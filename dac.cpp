@@ -5,7 +5,7 @@
 
 void AD5551::write (uint16_t dac_counts)
 {
-    // assert (dac_counts <  (1<<14));
+  //assert (dac_counts <  (1<<14));
 
     dac_counts &= 0x3fff; // 14 bit DAC--- upper pad the 2 msbs with zeroes
 

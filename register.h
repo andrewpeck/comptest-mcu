@@ -81,33 +81,38 @@ class bitField {
 
             _reg->applyMask(_bitmask);
 
-//            if (adr()==4) {
-//            SerialUSB.print("\r\n");
-//            SerialUSB.print("\r\n");
-//            SerialUSB.print("bitmask: ");
-//            SerialUSB.print(_bitmask, HEX);
-//            SerialUSB.print("     fieldmask: ");
-//            SerialUSB.print(_fieldmask, HEX);
-//            SerialUSB.print("     bithi: ");
-//            SerialUSB.print(_bithi);
-//            SerialUSB.print("     bitlow: ");
-//            SerialUSB.print(_bitlow);
-//            SerialUSB.print("     setval: ");
-//            SerialUSB.print(value);
-//            SerialUSB.print("\r\n");
-//
-//            if (_fieldmask!=0xf){
-//            SerialUSB.print("fieldmask??=0x");
-//            SerialUSB.print(_fieldmask,HEX);
-//            SerialUSB.print("\r\n");
-//            }
-
-
-//            SerialUSB.print("applyData");
-//            SerialUSB.print(data);
-//            SerialUSB.print("\r\n");
-            //}
             uint16_t data = (value & _fieldmask) << _bitlow; //value << _bitlow; // (value & _fieldmask) << _bitlow;
+
+            if (0) {
+                if (adr()==14) {
+                SerialUSB.print("\r\n");
+                SerialUSB.print("\r\n");
+                SerialUSB.print("bitmask: ");
+                SerialUSB.print(_bitmask, HEX);
+                SerialUSB.print("     fieldmask: ");
+                SerialUSB.print(_fieldmask, HEX);
+                SerialUSB.print("     bithi: ");
+                SerialUSB.print(_bithi);
+                SerialUSB.print("     bitlow: ");
+                SerialUSB.print(_bitlow);
+                SerialUSB.print("     setval: ");
+                SerialUSB.print(value);
+                SerialUSB.print("\r\n");
+
+                if (_fieldmask!=0xf){
+                SerialUSB.print("fieldmask??=0x");
+                SerialUSB.print(_fieldmask,HEX);
+                SerialUSB.print("\r\n");
+                }
+
+
+                SerialUSB.print("applyData");
+                SerialUSB.print(data);
+                SerialUSB.print("\r\n");
+
+                }
+            }
+
             _reg->applyData(data);
 
         }

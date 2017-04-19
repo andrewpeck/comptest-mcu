@@ -81,7 +81,7 @@ class Fpga {
 
         // go from a per strip amplitude configuration; guess a expected halfstrip response.
 
-        bool isReady ()
+        inline bool isReady ()
         {
             bool state =  (REG_PORT_IN0 & fpga_ready_pin)!=0;
             return (state);

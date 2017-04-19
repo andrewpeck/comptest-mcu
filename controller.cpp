@@ -50,6 +50,7 @@ void Controller::initialize()
     offset_errcnt_rst.set(0);
     compout_errcnt_rst.set(0);
     thresholds_errcnt_rst.set(0);
+    compout_expect.set(0);
 
     fpga.writeAddress(fire_pulse.adr());
     fpga.writeAddress(bx_delay.adr());
@@ -70,8 +71,76 @@ void Controller::scan (uint16_t dac_value) {
         if (istrip%2==0)
             SerialUSB.print("----------------------------------------\r\n");
     for (int iside=0; iside<2; iside++) {
-        pulse (dac_value, 10, 1, istrip, iside);
+        pulse (dac_value, 1, 1, istrip, iside);
     }
+    }
+}
+
+void Controller::scanPeakTiming (uint16_t dac_value, uint8_t strip, uint8_t side) {
+
+    float mean0 = 0;
+
+    // loop over peaktime
+    for (uint8_t time=0; time<8; time++) {
+        uint8_t time_corrected=0;
+
+        // reverse the bit order here because I screwed up the PCB and put the wires in the wrong place
+        // probably better to do this in the f/w ?
+
+        time_corrected |= (0x1&(time>>2))<<0; // take 0th bit from  2nd bit
+        time_corrected |= (0x1&(time>>0))<<2; // take 2nd bit from 0th bit
+        time_corrected |= (0x1&(time>>1))<<1; // take 1st bit from 1st bit
+
+        pktime.set         (time_corrected);
+        pkmode.set         (1);
+
+        fpga.writeAddress  (pktime.adr());
+
+        cdac.writeThreshold(THRESH_VOLTAGE); //
+
+        fire_num_pulses.set(1);
+        fpga.writeAddress(fire_num_pulses.adr());
+
+        pdac.write(dac_value);
+
+        strip&=0xf;
+        side&=0x1;
+
+        pulser.setStrip(strip, side);
+
+        delayMicroseconds(10);
+
+        SerialUSB.print ("set=");
+        SerialUSB.print (time);
+        SerialUSB.print ("    response=");
+
+        uint16_t sum=0;
+
+        for (int i=0; i<10; i++) {
+
+            fpga.fire();
+            while (!fpga.isReady()) ;
+
+            fpga.readAddress(response_time.adr());
+            uint8_t response = response_time.get();
+
+            sum+=response;
+
+            // if (response==255) {
+            //     i=i-1;
+            // continue;
+            // }
+
+            SerialUSB.print (response);
+            SerialUSB.print ("  ");
+        }
+
+        if (time==0)
+            mean0 = sum/10.*25.;
+
+        SerialUSB.print ("mean=");
+        SerialUSB.print (sum/10.);
+        SerialUSB.print ("\r\n");
     }
 }
 
@@ -85,7 +154,124 @@ void Controller::scan (uint16_t dac_value) {
 //
 // }
 
+void Controller::scanMode (uint16_t dac_value, uint16_t num_pulses, uint8_t strip, uint8_t side) {
+
+      uint16_t errors_hs    [4][8];
+      uint16_t errors_strip [4][8];
+
+      for (uint8_t mode=0; mode<4; mode++) {
+          for (uint8_t time=0; time<8; time++) {
+
+              pkmode.set         (mode);
+              pktime.set         (time);
+
+              fpga.writeAddress(pkmode.adr());
+
+              fpga.resetCounters();
+
+              while (!fpga.isReady()) ;
+
+              //initialize();
+
+              cdac.writeThreshold(OFFSET_VOLTAGE); //
+
+              fire_num_pulses.set(num_pulses);
+              fpga.writeAddress(fire_num_pulses.adr());
+
+              pdac.write(dac_value);
+
+              strip&=0xf;
+              side&=0x1;
+
+              pulser.setStrip(strip, side);
+
+              delayMicroseconds(10);
+
+
+              fpga.fire();
+              while (!fpga.isReady()) ;
+
+              fpga.readAddress(adr_halfstrips);
+              fpga.readAddress(adr_halfstrips2);
+              fpga.readAddress(adr_halfstrips2);
+
+              fpga.readAddress(adr_offsets_errcnt);
+              fpga.readAddress(adr_thresholds_errcnt);
+
+              uint32_t halfstrips = (halfstrips_msbs.get() << 16) | halfstrips_lsbs.get();
+
+              for (int i=0; i<32; i++) {
+                  if (i%4==0)
+                      SerialUSB.print("|");
+
+                  if (i==(strip*2 + side)) {
+                      if  ((halfstrips >> i) & 0x1)
+                          SerialUSB.print("g"); // print this if we see a hit in the right spot
+                      else
+                          SerialUSB.print(" ");
+                  }
+                  else {
+                      if  ((halfstrips >> i) & 0x1)
+                          SerialUSB.print("-"); // print this if we see a hit in the wrong spot
+                      else
+                          SerialUSB.print(" ");
+                  }
+              }
+
+              SerialUSB.print("|");
+              SerialUSB.print("  (");
+              SerialUSB.print(strip);
+              SerialUSB.print(", ");
+              SerialUSB.print(side);
+              SerialUSB.print(")");
+
+              SerialUSB.print("  (hs_error=");
+              SerialUSB.print(offsets_errcnt.get());
+              SerialUSB.print(", strip_errors=");
+              SerialUSB.print(thresholds_errcnt.get());
+              SerialUSB.print(")");
+              SerialUSB.print ("\r\n");
+
+              errors_hs    [mode][time]=offsets_errcnt.get();
+              errors_strip [mode][time]=thresholds_errcnt.get();
+
+          }}
+
+      SerialUSB.print("|0  1|2  3|4  5|6  7|8  9|A  B|C  D|E  F|\r\n");
+
+      char msg [240];
+
+      sprintf(msg, "halfstrip_errors\r\n");
+      SerialUSB.print(msg);
+      sprintf(msg, "          0       1      2       3        4       5       6       7\r\n");
+      SerialUSB.print(msg);
+      for (uint8_t imode=0; imode<4; imode++) {
+      sprintf(msg, "%1i       %3i     %3i    %3i     %3i      %3i     %3i     %3i     %3i\r\n", imode, errors_hs[imode][0], errors_hs[imode][1], errors_hs[imode][2], errors_hs[imode][3], errors_hs[imode][4], errors_hs[imode][5], errors_hs[imode][6], errors_hs[imode][7]);
+      SerialUSB.print(msg);
+      }
+
+      sprintf(msg, "strip_errors\r\n");
+      SerialUSB.print(msg);
+      sprintf(msg, "          0       1      2       3        4       5       6       7\r\n");
+      SerialUSB.print(msg);
+      for (uint8_t imode=0; imode<4; imode++) {
+      sprintf(msg, "%1i       %3i     %3i    %3i     %3i      %3i     %3i     %3i     %3i\r\n", imode, errors_strip[imode][0], errors_strip[imode][1], errors_strip[imode][2], errors_strip[imode][3], errors_strip[imode][4], errors_strip[imode][5], errors_strip[imode][6], errors_strip[imode][7]);
+      SerialUSB.print(msg);
+      }
+
+}
+
 void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loops, uint8_t strip=1, uint8_t side=0) {
+
+    uint16_t errors_hs    [4][8];
+    uint16_t errors_strip [4][8];
+
+    //-Compout----------------------------------------------------------------------------------------------------------
+    if (strip==15)
+        compout_expect.set(1);
+    else
+        compout_expect.set(0);
+    fpga.writeAddress(adr_pulse_ctrl);
 
     fpga.resetCounters();
 
@@ -93,7 +279,7 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
     //initialize();
 
-    cdac.writeThreshold(14); //
+    cdac.writeThreshold(OFFSET_VOLTAGE); //
 
     fire_num_pulses.set(num_pulses);
     fpga.writeAddress(fire_num_pulses.adr());
@@ -130,21 +316,23 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
     fpga.readAddress(adr_offsets_errcnt);
     fpga.readAddress(adr_thresholds_errcnt);
+    fpga.readAddress(adr_compout_errcnt);
 
     uint32_t halfstrips = (halfstrips_msbs.get() << 16) | halfstrips_lsbs.get();
 
     for (int i=0; i<32; i++) {
         if (i%4==0)
                 SerialUSB.print("|");
+
         if (i==(strip*2 + side)) {
             if  ((halfstrips >> i) & 0x1)
-                SerialUSB.print("x");
+                SerialUSB.print("g"); // print this if we see a hit in the right spot
             else
                 SerialUSB.print(" ");
         }
         else {
             if  ((halfstrips >> i) & 0x1)
-                SerialUSB.print("-");
+                SerialUSB.print("-"); // print this if we see a hit in the wrong spot
             else
                 SerialUSB.print(" ");
         }
@@ -160,6 +348,8 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
     SerialUSB.print(offsets_errcnt.get());
     SerialUSB.print(", strip_errors=");
     SerialUSB.print(thresholds_errcnt.get());
+    SerialUSB.print(", compout_errors=");
+    SerialUSB.print(compout_errcnt.get());
     SerialUSB.print(")");
     SerialUSB.print ("\r\n");
 }
@@ -176,7 +366,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         cdac.writeThreshold(THRESH_VOLTAGE); //
     }
     else {
-        cdac.writeThreshold(0.5); //
+        cdac.writeThreshold(OFFSET_VOLTAGE); //
     }
 
     delayMicroseconds(100);
@@ -193,24 +383,36 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
     fire_num_pulses.set(num_pulses);
     fpga.writeAddress(fire_num_pulses.adr());
 
-    for (int index=0; index<1024; index++) {
+    uint16_t dac_value = dac_start;
+    pdac.write(dac_value);
+    delayMicroseconds(25);
 
-        uint16_t dac_value = dac_start + index*dac_step;
+    bitField *field = (test_type==test_thresh) ? &thresholds_errcnt : &offsets_errcnt;
 
-        /* wait some delay for DAC to settle initially .. subsequent incremental changes can be faster */
-        pdac.write(dac_value);
+    for (uint16_t index=0; index<1024; index++) {
 
-        if (dac_value==dac_start)
-            delayMicroseconds(100);
-        else
-            delayMicroseconds(10);
+        delayMicroseconds(1);
 
         fpga.resetCounters();
 
         fpga.fire();
+
+        if (split_packets && index>0) {
+            char msg [0];
+            sprintf(msg, "%04X", data[index-1]);
+            SerialUSB.print(msg);
+        }
+
         while (!fpga.isReady()) ;
 
-        bitField *field = (test_type==test_thresh) ? &thresholds_errcnt : &offsets_errcnt;
+        //-DAC----------------------------------------------------------------------------------------------------------
+        dac_value += dac_step;
+
+        /* wait some delay for DAC to settle initially .. subsequent incremental changes can be faster */
+        pdac.write(dac_value);
+
+
+        //-Readout------------------------------------------------------------------------------------------------------
 
         fpga.readAddress (field->adr());
 
@@ -221,6 +423,12 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
             data[index] = erflut[index];
         else
             data[index] = field->data();
+    }
+
+    if (split_packets) {
+        char msg [0];
+        sprintf(msg, "%04X", data[1023]);
+        SerialUSB.print(msg);
     }
 }
 

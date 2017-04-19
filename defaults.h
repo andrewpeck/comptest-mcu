@@ -6,17 +6,21 @@
 // static const auto PKMODE = Comparator::PKMODE0;
 // static const auto PKTIME = Comparator::PKTIME25;
 
-static const uint8_t BX_DELAY       = 0x1;  // in reality, measure ~22bx between pulse and receiving decoded triads.   Open window at 16, look for 32 bx should be ok.
-static const uint8_t PULSE_WIDTH    = 0x4;
-static const uint8_t PKMODE         = 0; // 2
-static const uint8_t PKTIME         = 1; // 1
+static const uint8_t BX_DELAY       = 8;  // in reality, measure ~22bx between pulse and receiving decoded triads.   Open window at 16, look for 32 bx should be ok.
+static const uint8_t PULSE_WIDTH    = 0x1;
+static const uint8_t PKMODE         = 0; // def=2; 2 bits
+static const uint8_t PKTIME         = 3; // def=1; 3 bits
 static const uint8_t TRIAD_PERSIST  = 2;
 static const uint8_t TRIAD_PERSIST1 = 0;
 static const uint8_t COMPIN_INJECT  = 0;
 static const uint8_t DDD_DELAY      = 0;
-static const float   THRESH_VOLTAGE = 0.46f;
-static const uint16_t   RESTORE_CNT = 4095;
+static const float   THRESH_VOLTAGE = 20; // millivolts
+static const float   OFFSET_VOLTAGE = 20; // millivolts
+static const uint16_t   RESTORE_CNT = 1024;
 
 enum {test_offset, test_thresh, test_currents};
+
+
+const bool split_packets = true;
 
 #endif /* DEFAULTS_H */
