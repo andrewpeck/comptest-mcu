@@ -37,7 +37,15 @@ void Controller::initialize()
     bx_delay.set       (BX_DELAY);
     pulse_width.set    (PULSE_WIDTH);
     pkmode.set         (PKMODE);
-    pktime.set         (PKTIME);
+
+    uint8_t time_corrected = 0;
+
+    time_corrected |= (0x1&(PKTIME>>2))<<0; // take 0th bit from  2nd bit
+    time_corrected |= (0x1&(PKTIME>>0))<<2; // take 2nd bit from 0th bit
+    time_corrected |= (0x1&(PKTIME>>1))<<1; // take 1st bit from 1st bit
+
+    pktime.set         (time_corrected);
+
     triad_persist.set  (TRIAD_PERSIST);
     triad_persist1.set (TRIAD_PERSIST1);
     compin_inject.set  (COMPIN_INJECT);
@@ -76,7 +84,7 @@ void Controller::scan (uint16_t dac_value) {
     }
 }
 
-void Controller::scanPeakTiming (uint16_t dac_value, uint8_t strip, uint8_t side) {
+void Controller::scanPeakTiming (uint16_t dac_value, uint16_t num_pulses, uint8_t strip, uint8_t side) {
 
     float mean0 = 0;
 
@@ -92,7 +100,7 @@ void Controller::scanPeakTiming (uint16_t dac_value, uint8_t strip, uint8_t side
         time_corrected |= (0x1&(time>>1))<<1; // take 1st bit from 1st bit
 
         pktime.set         (time_corrected);
-        pkmode.set         (1);
+        pkmode.set         (0);
 
         fpga.writeAddress  (pktime.adr());
 
@@ -110,13 +118,12 @@ void Controller::scanPeakTiming (uint16_t dac_value, uint8_t strip, uint8_t side
 
         delayMicroseconds(10);
 
-        SerialUSB.print ("set=");
+        SerialUSB.print ("TIME::");
+        SerialUSB.print (" pktime=");
         SerialUSB.print (time);
-        SerialUSB.print ("    response=");
+        SerialUSB.print (" ");
 
-        uint16_t sum=0;
-
-        for (int i=0; i<10; i++) {
+        for (int i=0; i<num_pulses; i++) {
 
             fpga.fire();
             while (!fpga.isReady()) ;
@@ -124,22 +131,10 @@ void Controller::scanPeakTiming (uint16_t dac_value, uint8_t strip, uint8_t side
             fpga.readAddress(response_time.adr());
             uint8_t response = response_time.get();
 
-            sum+=response;
-
-            // if (response==255) {
-            //     i=i-1;
-            // continue;
-            // }
-
             SerialUSB.print (response);
             SerialUSB.print ("  ");
         }
 
-        if (time==0)
-            mean0 = sum/10.*25.;
-
-        SerialUSB.print ("mean=");
-        SerialUSB.print (sum/10.);
         SerialUSB.print ("\r\n");
     }
 }
@@ -163,7 +158,14 @@ void Controller::scanMode (uint16_t dac_value, uint16_t num_pulses, uint8_t stri
           for (uint8_t time=0; time<8; time++) {
 
               pkmode.set         (mode);
-              pktime.set         (time);
+
+              uint8_t time_corrected = 0;
+
+              time_corrected |= (0x1&(time>>2))<<0; // take 0th bit from  2nd bit
+              time_corrected |= (0x1&(time>>0))<<2; // take 2nd bit from 0th bit
+              time_corrected |= (0x1&(time>>1))<<1; // take 1st bit from 1st bit
+
+              pktime.set         (time_corrected);
 
               fpga.writeAddress(pkmode.adr());
 

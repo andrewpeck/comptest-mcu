@@ -94,13 +94,13 @@ void loop () {
 start:
 
     uint8_t   scan_channel;
-    uint16_t  param1;
+    uint16_t  param1=1000;
 
     uint8_t  scan_side;  // side is really 8 bits but save the extras for doubling as register data
-    uint16_t param2; // side is really 8 bits but save the extras for doubling as register data
+    uint16_t param2=10; // side is really 8 bits but save the extras for doubling as register data
 
-    uint16_t param3;
-    uint16_t param4;
+    uint16_t param3=1;
+    uint16_t param4=1;
     uint16_t param5;
 
     uint8_t  dac_step;
@@ -286,10 +286,18 @@ parse:
             controller.scan(param1);
         }
         else if (scan_cmd == cmd_timescan) {
-            controller.scanPeakTiming(param1, param2, param3);
+            sprintf(msg, "DATA::START=1 TEST=TIMING DAC_VALUE=%i NUM_PULSES=%i STRIP=%i SIDE=%i ", param1, param2, param3, param4);
+            SerialUSB.println(msg);
+            start = millis();
+            controller.scanPeakTiming(param1, param2, param3, param4);
+            transmitEndString();
         }
         else if (scan_cmd == cmd_modescan) {
+            sprintf(msg, "DATA::START=1 TEST=MODE DAC_VALUE=%i NUM_PULSES=%i STRIP=%i SIDE=%i ", param1, param2, param3, param4);
+            SerialUSB.println(msg);
+            start = millis();
             controller.scanMode(param1, param2, param3, param4);
+            transmitEndString();
         }
     }
 
@@ -325,6 +333,7 @@ void scanOffset (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_s
         transmitResultPacket(data);
     }
 
+    SerialUSB.print ("\r\n");
     transmitEndString();
 }
 
@@ -345,6 +354,7 @@ void scanThresh (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_s
         transmitResultPacket(data);
     }
 
+    SerialUSB.print ("\r\n");
     transmitEndString();
 }
 
@@ -361,6 +371,7 @@ void scanCurrent (uint8_t channel, uint16_t* data) {
 
     transmitStartString();
     transmitResultPacket(data);
+    SerialUSB.print ("\r\n");
     transmitEndString();
 }
 
@@ -403,8 +414,6 @@ void transmitStartString ()
 
 void transmitEndString ()
 {
-    SerialUSB.print ("\r\n");
-
     uint16_t time = millis() - start;
     uint16_t packet_size = (size * 2) / 1000;
 
