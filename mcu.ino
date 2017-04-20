@@ -85,7 +85,7 @@ uint16_t data_buffer [size];
 
 bool done = 0;
 
-enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan, cmd_timescan, cmd_modescan};
+enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan, cmd_timescan, cmd_modescan, cmd_compin, cmd_init};
 uint32_t loop_cnt;
     uint8_t  rx_index = 0;
 
@@ -207,6 +207,10 @@ parse:
                     scan_cmd = cmd_timescan;
                 else if (strcmp (p, "mode")==0)
                     scan_cmd = cmd_modescan;
+                else if (strcmp (p, "compin")==0)
+                    scan_cmd = cmd_compin;
+                else if (strcmp (p, "init")==0)
+                    scan_cmd = cmd_init;
                 else if (strcmp (p, "reset")==0) {
                     sprintf(msg, "INFO::RESETTING CONTROLLER"); SerialUSB.println(msg);
                     setup();
@@ -298,6 +302,13 @@ parse:
             start = millis();
             controller.scanMode(param1, param2, param3, param4);
             transmitEndString();
+        }
+        else if (scan_cmd == cmd_compin) {
+            compin_inject.set(param1);
+            fpga.writeAddress(compin_inject.adr());
+        }
+        else if (scan_cmd == cmd_init) {
+            controller.initialize();
         }
     }
 

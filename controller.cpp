@@ -10,7 +10,6 @@
 #include "defaults.h"
 #include "erflut.h"
 
-
 // TODO: parameterize this with some configuration that can be accessed from s/w ?
 void Controller::initialize()
 {
@@ -362,6 +361,7 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
 void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data)
 {
+
     /* write the threshold physically to the comparator DAC */
 
     if (test_type==test_thresh) {
