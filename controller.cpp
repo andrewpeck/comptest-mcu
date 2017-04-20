@@ -173,7 +173,7 @@ void Controller::scanMode (uint16_t dac_value, uint16_t num_pulses, uint8_t stri
 
               //initialize();
 
-              cdac.writeThreshold(OFFSET_VOLTAGE); //
+              cdac.writeThreshold(THRESH_VOLTAGE); //
 
               fire_num_pulses.set(num_pulses);
               fpga.writeAddress(fire_num_pulses.adr());
@@ -279,7 +279,7 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
     //initialize();
 
-    cdac.writeThreshold(OFFSET_VOLTAGE); //
+    cdac.writeThreshold(THRESH_VOLTAGE); //
 
     fire_num_pulses.set(num_pulses);
     fpga.writeAddress(fire_num_pulses.adr());

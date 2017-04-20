@@ -18,9 +18,9 @@ void Pulser::setStrip (uint8_t strip, uint8_t side, uint8_t scan)
     mux_en.set(1);
     fpga.writeAddress(mux_en.adr());
 
-    if (scan==test_thresh)
-        writeMuxThresh(strip, side);
-    else
+//    if (scan==test_thresh)
+//        writeMuxThresh(strip, side);
+//    else
         writeMux(strip, side);
 }
 
@@ -61,7 +61,7 @@ void Pulser::writeMux (uint8_t strip, uint8_t side)
 
     if (strip==0) {
 
-        if (side==LEFT) {         // left side
+        if (side==0) {         // left side
 
             mux_low.set(strip+1); // low pulse to 1
             mux_prev.set(med);    // medium pulse to prev
@@ -71,7 +71,7 @@ void Pulser::writeMux (uint8_t strip, uint8_t side)
 
         }
 
-        else if (side==RIGHT) {   // right side
+        else if (side==1) {   // right side
 
             mux_prev.set(low); // low pulse to prev
             mux_med.set(1);    // med pulse to 1
@@ -89,7 +89,7 @@ void Pulser::writeMux (uint8_t strip, uint8_t side)
 
     else if (strip==15) {
 
-        if (side==LEFT) {
+        if (side==0) {
             mux_next.set(low); // low pulse to next
             mux_med.set(14);   // med pulse to 14
 
@@ -97,7 +97,7 @@ void Pulser::writeMux (uint8_t strip, uint8_t side)
             mux_prev.set(off); // disable
         }
 
-        else if (side==RIGHT) {   // right side
+        else if (side==1) {   // right side
 
             mux_next.set(med); // med pulse to next
             mux_low.set(14);   // low pulse to 14
@@ -115,7 +115,7 @@ void Pulser::writeMux (uint8_t strip, uint8_t side)
         mux_prev.set(3); // disable
         mux_next.set(3); // disable
 
-        if (side==LEFT) {
+        if (side==0) {
             mux_med.set(strip-1);
             mux_low.set(strip+1);
         }
