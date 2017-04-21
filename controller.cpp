@@ -364,11 +364,14 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
 
     /* write the threshold physically to the comparator DAC */
 
-    if (test_type==test_thresh) {
-        cdac.writeThreshold(THRESH_VOLTAGE); //
+    if (test_type==test_offset) {
+        cdac.writeThreshold(OFFSET_VOLTAGE); //
+    }
+    else if (test_type==test_compout) {
+        cdac.writeThreshold(OFFSET_VOLTAGE); //
     }
     else {
-        cdac.writeThreshold(OFFSET_VOLTAGE); //
+        cdac.writeThreshold(THRESH_VOLTAGE); //
     }
 
     delayMicroseconds(100);
@@ -389,7 +392,10 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
     pdac.write(dac_value);
     delayMicroseconds(25);
 
-    bitField *field = (test_type==test_thresh) ? &thresholds_errcnt : &offsets_errcnt;
+    bitField *field =
+        (test_type==test_thresh)  ? & thresholds_errcnt :
+        (test_type==test_compout) ? & compout_errcnt :
+                                    & offsets_errcnt;
 
     for (uint16_t index=0; index<1024; index++) {
 
@@ -442,6 +448,11 @@ void Controller::offsetScan (uint16_t dac_start, uint16_t dac_step, uint16_t num
 void Controller::threshScan (uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data)
 {
     genericScan(test_thresh, dac_start, dac_step, num_pulses, data);
+}
+
+void Controller::compoutScan (uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data)
+{
+    genericScan(test_compout, dac_start, dac_step, num_pulses, data);
 }
 
 

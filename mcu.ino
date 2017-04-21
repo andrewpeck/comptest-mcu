@@ -85,7 +85,7 @@ uint16_t data_buffer [size];
 
 bool done = 0;
 
-enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan, cmd_timescan, cmd_modescan, cmd_compin, cmd_init};
+enum {cmd_offset, cmd_thresh, cmd_current, cmd_wr, cmd_rd, cmd_pulse, cmd_scan, cmd_timescan, cmd_modescan, cmd_compin, cmd_compout, cmd_init};
 uint32_t loop_cnt;
     uint8_t  rx_index = 0;
 
@@ -209,6 +209,8 @@ parse:
                     scan_cmd = cmd_modescan;
                 else if (strcmp (p, "compin")==0)
                     scan_cmd = cmd_compin;
+                else if (strcmp (p, "compout")==0)
+                    scan_cmd = cmd_compout;
                 else if (strcmp (p, "init")==0)
                     scan_cmd = cmd_init;
                 else if (strcmp (p, "reset")==0) {
@@ -253,11 +255,11 @@ parse:
 
 
         if (scan_cmd == cmd_offset) {
-            scanOffset (uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
+            scanInput (scan_cmd, uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
         }
 
         else if (scan_cmd == cmd_thresh) {
-            scanThresh (uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
+            scanInput (scan_cmd, uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
         }
 
         else if (scan_cmd == cmd_current) {
@@ -307,6 +309,9 @@ parse:
             compin_inject.set(param1);
             fpga.writeAddress(compin_inject.adr());
         }
+        else if (scan_cmd == cmd_compout) {
+            scanInput (scan_cmd, uint8_t(param1), uint8_t(param2), param3, param4, param5, data_buffer);
+        }
         else if (scan_cmd == cmd_init) {
             controller.initialize();
         }
@@ -327,39 +332,44 @@ void readRegister(uint8_t address) {
     SerialUSB.println(msg);
 }
 
-void scanOffset (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data) {
+void scanInput (uint8_t cmd, uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data) {
 
     start = millis();
 
-    sprintf(msg, "DATA::START=1 TEST=OFFSET  STRIP=%i SIDE=%i DAC_START=%i DAC_STEP=%i NUM_PULSES=%i", strip,side,dac_start,dac_step,num_pulses);
-    SerialUSB.println(msg);
+    char namet [] = "THRESH";
+    char nameo [] = "OFFSET";
+    char namec [] = "COMPOUT";
 
-    transmitStartString();
+    char * name;
+    if (cmd==cmd_offset)
+        name = nameo;
+    if (cmd==cmd_thresh)
+        name = namet;
+    if (cmd==cmd_compout)
+        name = namec;
 
-    pulser.setStrip(strip, side, test_offset);
 
-    controller.offsetScan(dac_start, dac_step, num_pulses, data);
-
-    if (!split_packets) {
-        transmitResultPacket(data);
-    }
-
-    SerialUSB.print ("\r\n");
-    transmitEndString();
-}
-
-void scanThresh (uint8_t strip, uint8_t side, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data) {
-
-    start = millis();
-
-    sprintf(msg, "DATA::START=1 TEST=THRESH  STRIP=%i SIDE=%i DAC_START=%i DAC_STEP=%i NUM_PULSES=%i", strip,side,dac_start,dac_step,num_pulses);
+    sprintf(msg, "DATA::START=1 TEST=%s  STRIP=%i SIDE=%i DAC_START=%i DAC_STEP=%i NUM_PULSES=%i",
+            name, strip,side,dac_start,dac_step,num_pulses);
     SerialUSB.println(msg);
 
     transmitStartString();
 
     pulser.setStrip(strip, side, test_thresh);
 
-    controller.threshScan(dac_start, dac_step, num_pulses, data);
+    if (cmd==cmd_thresh)
+        controller.threshScan(dac_start, dac_step, num_pulses, data);
+    else if (cmd==cmd_offset)
+        controller.offsetScan(dac_start, dac_step, num_pulses, data);
+    else if (cmd==cmd_compout) {
+
+        if (strip==15 && side==1) compout_expect.set(1);
+        else           compout_expect.set(0);
+
+        fpga.writeAddress(compout_expect.adr());
+
+        controller.compoutScan(dac_start, dac_step, num_pulses, data);
+    }
 
     if (!split_packets) {
         transmitResultPacket(data);

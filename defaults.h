@@ -19,7 +19,7 @@ static const float   THRESH_VOLTAGE = 14; // millivolts
 static const float   OFFSET_VOLTAGE = 5; // millivolts
 static const uint16_t   RESTORE_CNT = 2048;
 
-enum {test_offset, test_thresh, test_currents};
+enum {test_offset, test_thresh, test_currents, test_compout};
 
 
 const bool split_packets = true;
