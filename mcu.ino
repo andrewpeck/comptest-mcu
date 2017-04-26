@@ -292,10 +292,10 @@ parse:
             controller.scan(param1);
         }
         else if (scan_cmd == cmd_timescan) {
-            sprintf(msg, "DATA::START=1 TEST=TIMING DAC_VALUE=%i NUM_PULSES=%i STRIP=%i SIDE=%i ", param1, param2, param3, param4);
+            sprintf(msg, "DATA::START=1 TEST=TIMING DAC_VALUE=%i NUM_PULSES=%i STRIP=%i SIDE=%i MODE=%i", param1, param2, param3, param4, param5);
             SerialUSB.println(msg);
             start = millis();
-            controller.scanPeakTiming(param1, param2, param3, param4);
+            controller.scanPeakTiming(param1, param2, param3, param4, param5);
             transmitEndString();
         }
         else if (scan_cmd == cmd_modescan) {

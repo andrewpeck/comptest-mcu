@@ -27,6 +27,7 @@ bitField triad_persist1 (&reg_pulse_ctrl2, 4, 4);
 bitField mux_en (&reg_pulse_ctrl2, 5, 5);
 bitField compout_last (&reg_pulse_ctrl2, 6, 6);
 bitField pulser_ready (&reg_pulse_ctrl2, 7, 7);
+bitField pulse_en_posneg (&reg_pulse_ctrl2, 8, 8);
 
 Reg reg_mux_ctrl (adr_mux_ctrl);
 

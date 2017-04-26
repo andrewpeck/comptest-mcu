@@ -49,6 +49,9 @@ void Controller::initialize()
     triad_persist1.set (TRIAD_PERSIST1);
     compin_inject.set  (COMPIN_INJECT);
     restore_cnt.set    (RESTORE_CNT);
+
+    pulse_en_posneg.set (0); // 0=neg, 1=pos
+
     lctrst.set         (0);
 
     fpga.resetCounters();
@@ -83,13 +86,15 @@ void Controller::scan (uint16_t dac_value) {
     }
 }
 
-void Controller::scanPeakTiming (uint16_t dac_value, uint16_t num_pulses, uint8_t strip, uint8_t side) {
+void Controller::scanPeakTiming (uint16_t dac_value, uint16_t num_pulses, uint8_t strip, uint8_t side, uint8_t mode) {
 
     float mean0 = 0;
 
     // loop over peaktime
     for (uint8_t time=0; time<8; time++) {
         uint8_t time_corrected=0;
+
+        pkmode.set         (mode);
 
         // reverse the bit order here because I screwed up the PCB and put the wires in the wrong place
         // probably better to do this in the f/w ?
@@ -99,7 +104,6 @@ void Controller::scanPeakTiming (uint16_t dac_value, uint16_t num_pulses, uint8_
         time_corrected |= (0x1&(time>>1))<<1; // take 1st bit from 1st bit
 
         pktime.set         (time_corrected);
-        pkmode.set         (0);
 
         fpga.writeAddress  (pktime.adr());
 
@@ -361,6 +365,15 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
 void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data)
 {
+    pkmode.set(PKMODE);
+    uint8_t time_corrected = 0;
+
+    time_corrected |= (0x1&(PKTIME>>2))<<0; // take 0th bit from  2nd bit
+    time_corrected |= (0x1&(PKTIME>>0))<<2; // take 2nd bit from 0th bit
+    time_corrected |= (0x1&(PKTIME>>1))<<1; // take 1st bit from 1st bit
+
+    pktime.set         (time_corrected);
+    fpga.writeAddress(pktime.adr());
 
     /* write the threshold physically to the comparator DAC */
 
@@ -368,13 +381,12 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         cdac.writeThreshold(OFFSET_VOLTAGE); //
     }
     else if (test_type==test_compout) {
-        cdac.writeThreshold(OFFSET_VOLTAGE); //
+        cdac.writeThreshold(THRESH_VOLTAGE); //
     }
     else {
         cdac.writeThreshold(THRESH_VOLTAGE); //
     }
 
-    delayMicroseconds(100);
 
     /* wait for pulser ready... poll the board until it is OK. */
      while (!fpga.isReady()) ;
@@ -390,7 +402,7 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
 
     uint16_t dac_value = dac_start;
     pdac.write(dac_value);
-    delayMicroseconds(25);
+    delayMicroseconds(10000);
 
     bitField *field =
         (test_type==test_thresh)  ? & thresholds_errcnt :
@@ -418,6 +430,8 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
 
         /* wait some delay for DAC to settle initially .. subsequent incremental changes can be faster */
         pdac.write(dac_value);
+
+        delayMicroseconds(5);
 
 
         //-Readout------------------------------------------------------------------------------------------------------

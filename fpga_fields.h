@@ -50,6 +50,7 @@ extern bitField triad_persist1 ;
 extern bitField mux_en ;
 extern bitField compout_last ;
 extern bitField pulser_ready ;
+extern bitField pulse_en_posneg;
 
 extern Reg reg_mux_ctrl ;
 
