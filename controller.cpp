@@ -365,6 +365,10 @@ void Controller::pulse(uint16_t dac_value, uint16_t num_pulses, uint16_t num_loo
 
 void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_step, uint16_t num_pulses, uint16_t* data)
 {
+    uint16_t last10 [10];
+
+    const bool stepMod2 = false;
+
     pkmode.set(PKMODE);
     uint8_t time_corrected = 0;
 
@@ -409,13 +413,44 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
         (test_type==test_compout) ? & compout_errcnt :
                                     & offsets_errcnt;
 
+    int zerocount = 0;
+
     for (uint16_t index=0; index<1024; index++) {
 
-        delayMicroseconds(1);
+        // optionally just send an error function from RAM
+        static const bool useerf = 0;
 
-        fpga.resetCounters();
+        if (useerf) {
+            data[index] = erflut[index];
+            break;
+        }
 
-        fpga.fire();
+        if (stepMod2 && (index%2==1)) {
+            data[index] = data[index-1];
+            dac_value += dac_step;
+            pdac.write (dac_value);
+            delayMicroseconds(5);
+
+            if (split_packets && index>0) {
+                char msg [0];
+                sprintf(msg, "%04X", data[index-1]);
+                SerialUSB.print(msg);
+            }
+
+            break;
+        }
+
+        bool speedup = false;
+
+        if (zerocount>15 && index%64!=0)
+            speedup=true;
+
+        if (!speedup) {
+            delayMicroseconds(1);
+            fpga.resetCounters();
+
+            fpga.fire();
+        }
 
         if (split_packets && index>0) {
             char msg [0];
@@ -423,28 +458,31 @@ void Controller::genericScan(bool test_type, uint16_t dac_start, uint16_t dac_st
             SerialUSB.print(msg);
         }
 
-        while (!fpga.isReady()) ;
+        if (!speedup)
+            while (!fpga.isReady()) ;
 
         //-DAC----------------------------------------------------------------------------------------------------------
         dac_value += dac_step;
 
         /* wait some delay for DAC to settle initially .. subsequent incremental changes can be faster */
-        pdac.write(dac_value);
+        pdac.write (dac_value);
 
-        delayMicroseconds(5);
+        if (!speedup)
+            delayMicroseconds(5);
 
 
         //-Readout------------------------------------------------------------------------------------------------------
 
-        fpga.readAddress (field->adr());
+        if (speedup)
+            data[index]=0;
+        else {
+            fpga.readAddress (field->adr());
 
-        // optionally just send an error function from RAM
-        static const int useerf = 0;
-
-        if (useerf)
-            data[index] = erflut[index];
-        else
             data[index] = field->data();
+
+            if (data[index]==0) zerocount++;
+            else                zerocount=0;
+        }
     }
 
     if (split_packets) {

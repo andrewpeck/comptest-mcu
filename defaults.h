@@ -17,7 +17,7 @@ static const uint8_t COMPIN_INJECT  = 0;
 static const uint8_t DDD_DELAY      = 0;
 static const float   THRESH_VOLTAGE = 14; // millivolts
 static const float   OFFSET_VOLTAGE = 5; // millivolts
-static const uint16_t   RESTORE_CNT = 2047;
+static const uint16_t   RESTORE_CNT = 512;
 
 enum {test_offset, test_thresh, test_currents, test_compout};
 
