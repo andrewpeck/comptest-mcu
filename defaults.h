@@ -10,13 +10,13 @@
 static const uint8_t BX_DELAY       = 8;  // in reality, measure ~22bx between pulse and receiving decoded triads.   Open window at 16, look for 32 bx should be ok.
 static const uint8_t PULSE_WIDTH    = 0x1;
 static const uint8_t PKMODE         = 2; // def=2; 2 bits
-static const uint8_t PKTIME         = 7; // def=1; 3 bits
+static const uint8_t PKTIME         = 5; // def=1; 3 bits
 static const uint8_t TRIAD_PERSIST  = 2;
 static const uint8_t TRIAD_PERSIST1 = 0;
 static const uint8_t COMPIN_INJECT  = 0;
 static const uint8_t DDD_DELAY      = 0;
 static const float   THRESH_VOLTAGE = 14; // millivolts
-static const float   OFFSET_VOLTAGE = 5; // millivolts
+static const float   OFFSET_VOLTAGE = 3; // millivolts
 static const uint16_t   RESTORE_CNT = 512;
 
 enum {test_offset, test_thresh, test_currents, test_compout};

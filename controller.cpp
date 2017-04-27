@@ -50,7 +50,7 @@ void Controller::initialize()
     compin_inject.set  (COMPIN_INJECT);
     restore_cnt.set    (RESTORE_CNT);
 
-    pulse_en_posneg.set (0); // 0=neg, 1=pos
+    pulse_en_posneg.set (1); // 0=neg, 1=pos
 
     lctrst.set         (0);
 
